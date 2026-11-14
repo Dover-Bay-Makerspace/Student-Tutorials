@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Google Docs Sharing Missions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: sticky progress header, mission list on the left, missions in one column beside Google Drive; partners work through it side by side. */
+:root{
+  --paper:#f3f6fb;
+  --card:#ffffff;
+  --ink:#14213a;
+  --muted:#5a6680;
+  --line:#d5ddea;
+  --blue:#1d5fd1;
+  --blue-soft:#e3ecfb;
+  --key:#fff6d6;
+  --key-line:#d9c37a;
+  --good:#1f8a4c;
+  --good-soft:#e2f4e9;
+  --warn:#a35b00;
+  --warn-soft:#fdf0dc;
+  --bad:#b3261e;
+  --font-display:"Lexend", "Segoe UI", system-ui, sans-serif;
+  --font-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f1522; --card:#172033; --ink:#e7ecf5; --muted:#9aa7c0; --line:#2b3852;
+    --blue:#6ea0ff; --blue-soft:#1d2d4d; --key:#3a3420; --key-line:#7d6c35;
+    --good:#5fd08f; --good-soft:#163627; --warn:#f0b15c; --warn-soft:#3a2c15; --bad:#ff8a80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f1522; --card:#172033; --ink:#e7ecf5; --muted:#9aa7c0; --line:#2b3852;
+  --blue:#6ea0ff; --blue-soft:#1d2d4d; --key:#3a3420; --key-line:#7d6c35;
+  --good:#5fd08f; --good-soft:#163627; --warn:#f0b15c; --warn-soft:#3a2c15; --bad:#ff8a80;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:17px;line-height:1.55}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:1.5rem}
+h2{font-size:1.35rem}
+h3{font-size:1.05rem}
+p{margin:0}
+a{color:var(--blue)}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:4px}
+kbd{display:inline-block;font-family:var(--font-body);font-weight:700;font-size:.85em;background:var(--key);border:1px solid var(--key-line);border-bottom-width:3px;border-radius:6px;padding:0 .45em;line-height:1.5;white-space:nowrap}
+
+header.top{position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
+.brand{display:flex;flex-direction:column}
+.brand small{color:var(--muted);font-size:.85rem}
+.prog{flex:1;min-width:220px;display:flex;align-items:center;gap:12px}
+.bar{flex:1;height:14px;border-radius:999px;background:var(--blue-soft);overflow:hidden}
+.bar span{display:block;height:100%;width:0;background:var(--blue);transition:width .3s}
+.prog b{font-variant-numeric:tabular-nums;min-width:5.5em;text-align:right}
+
+.wrap{display:grid;grid-template-columns:240px minmax(0,1fr);gap:24px;max-width:1100px;margin:0 auto;padding:20px 16px 80px}
+nav.side{position:sticky;top:84px;align-self:start;display:flex;flex-direction:column;gap:4px}
+nav.side button{display:flex;gap:10px;align-items:center;text-align:left;background:none;border:1px solid transparent;border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink)}
+nav.side button:hover{background:var(--card);border-color:var(--line)}
+nav.side .num{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-size:.85rem;background:var(--blue-soft);color:var(--blue)}
+nav.side .done .num{background:var(--good);color:#fff}
+nav.side .count{margin-left:auto;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+main{display:flex;flex-direction:column;gap:28px;min-width:0}
+.intro{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--blue);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+section.mission{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:16px;scroll-margin-top:90px}
+.mhead{display:flex;gap:14px;align-items:flex-start}
+.mhead .badge{flex:none;width:44px;height:44px;border-radius:12px;background:var(--blue);color:#fff;display:grid;place-items:center;font-family:var(--font-display);font-size:1.2rem}
+.mhead p{color:var(--muted);max-width:62ch;margin-top:4px}
+.tip{background:var(--warn-soft);color:var(--ink);border-radius:10px;padding:10px 14px;font-size:.95rem;border-left:4px solid var(--warn)}
+.tip strong{color:var(--warn)}
+.cb{background:var(--blue-soft);border-radius:10px;padding:10px 14px;font-size:.95rem;border-left:4px solid var(--blue)}
+.cb strong:first-child{color:var(--blue)}
+
+ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.task{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:background .2s,border-color .2s}
+.task.is-done{background:var(--good-soft);border-color:var(--good)}
+.task input[type=checkbox]{width:24px;height:24px;margin:2px 0 0;accent-color:var(--good);cursor:pointer}
+.task label{cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.task .what{font-weight:700}
+.task .how{color:var(--muted);font-size:.95rem}
+.task .auto{font-size:.8rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.04em}
+.task.is-done .auto{color:var(--good)}
+
+.practice{border:2px dashed var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.practice input[type=text],.practice textarea{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:8px 10px}
+.practice textarea{min-height:70px;resize:vertical}
+.code{font-family:ui-monospace,Consolas,monospace;font-size:1.1rem;background:var(--blue-soft);padding:6px 10px;border-radius:8px;user-select:all;display:inline-block}
+.paste{min-height:110px;display:grid;place-items:center;text-align:center;color:var(--muted);background:var(--paper);border-radius:8px;border:1px solid var(--line);padding:10px}
+.paste img{max-width:100%;max-height:240px;border-radius:6px}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:10px;padding:8px 16px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--blue);border:2px solid var(--blue)}
+.btn:hover{filter:brightness(1.08)}
+.status{font-size:.9rem;font-weight:700}
+.status.ok{color:var(--good)}
+
+/* Taskbar map */
+.tbwrap{overflow-x:auto;border-radius:12px;border:1px solid var(--line);background:var(--paper)}
+.tbwrap svg{display:block;min-width:640px;width:100%;height:auto}
+.hot{cursor:pointer}
+.hot circle{fill:var(--blue)}
+.hot text{fill:#fff;font-family:var(--font-display);font-size:13px}
+.hot.seen circle{fill:var(--good)}
+.tbinfo{background:var(--blue-soft);border-radius:10px;padding:12px 14px;min-height:72px}
+.tbinfo h3{margin-bottom:4px}
+
+/* Quiz */
+.quiz{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.quiz .q{font-weight:700}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 14px;cursor:pointer}
+.opts button:hover{border-color:var(--blue)}
+.opts button.right{background:var(--good);color:#fff;border-color:var(--good)}
+.opts button.wrong{background:transparent;color:var(--bad);border-color:var(--bad);text-decoration:line-through}
+.feedback{font-size:.95rem}
+
+/* Shortcut table */
+.sc{width:100%;border-collapse:collapse;font-size:.95rem}
+.sc td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.sc td:first-child{white-space:nowrap;width:1%}
+
+/* Finish card */
+.finish{background:linear-gradient(135deg,var(--blue),#123f8f);color:#fff;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px;scroll-margin-top:90px}
+.finish input{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:8px 10px;width:min(100%,320px)}
+.finish input::placeholder{color:rgba(255,255,255,.7)}
+.finish .big{font-family:var(--font-display);font-size:2.4rem;font-variant-numeric:tabular-nums}
+.finish .row{display:flex;flex-wrap:wrap;gap:24px}
+.finish .row div{display:flex;flex-direction:column}
+.finish small{opacity:.8}
+.finish .btn.ghost{color:#fff;border-color:#fff}
+.stamp{display:inline-block;background:#fff;color:#123f8f;font-family:var(--font-display);font-weight:700;padding:6px 14px;border-radius:999px}
+
+.modal{position:fixed;inset:0;background:rgba(10,15,30,.55);display:none;place-items:center;z-index:50;padding:16px}
+.modal.open{display:grid}
+.modal .box{background:var(--card);border-radius:14px;padding:20px;max-width:380px;display:flex;flex-direction:column;gap:14px}
+.modal .acts{display:flex;gap:10px;justify-content:flex-end}
+
+@media (max-width:820px){
+  .wrap{grid-template-columns:1fr}
+  nav.side{position:static;flex-direction:row;flex-wrap:wrap}
+  nav.side button{flex:1 1 140px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<style>
+/* Extra pieces for the sharing tutorial: role cards, scenario sorter, link checker. */
+.roles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.role{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--paper);display:flex;flex-direction:column;gap:4px}
+.role b{font-family:var(--font-display)}
+.role small{color:var(--muted)}
+.can{font-size:.9rem}
+.sorter{display:flex;flex-direction:column;gap:10px}
+.scen{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--paper)}
+.scen.right{border-color:var(--good);background:var(--good-soft)}
+.scen .opts button{font-size:.9rem}
+.partner{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.partner input{flex:1;min-width:180px}
+.status.bad{color:var(--bad)}
+.next{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><h1>Sharing Google Docs</h1><small>Dover Bay Secondary</small></div>
+  <div class="prog" aria-label="Overall progress">
+    <div class="bar"><span id="barFill"></span></div>
+    <b id="progText">0 / 0 tasks</b>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="side" id="sideNav" aria-label="Missions"></nav>
+  <main id="main">
+    <div class="intro">
+      <h2>How this works</h2>
+      <p>Do this with a <strong>partner</strong>. You will both share files with each other, so most tasks happen twice: once when you send and once when your partner sends. Keep this page on the right side of your screen and Google Drive on the left. Tick each box when you finish.</p>
+      <p>Everything here works the same on a Windows computer and on a Chromebook, because sharing all happens in the web browser.</p>
+      <div class="roles" aria-label="The three access levels">
+        <div class="role"><b>Viewer</b><span class="can">Can read it.</span><small>Can't change or comment.</small></div>
+        <div class="role"><b>Commenter</b><span class="can">Can read, comment and suggest changes.</span><small>Can't change your words directly.</small></div>
+        <div class="role"><b>Editor</b><span class="can">Can change anything.</span><small>Can also share it with others.</small></div>
+      </div>
+    </div>
+    <div id="missions"></div>
+
+    <section class="finish" id="finish" aria-labelledby="finTitle">
+      <h2 id="finTitle">Mission report</h2>
+      <p>Type your name, then show this card to your teacher.</p>
+      <label for="stuName">Your name</label>
+      <input id="stuName" type="text" placeholder="First and last name" autocomplete="off">
+      <div class="row">
+        <div><span class="big" id="finCourse" style="font-size:1.4rem">—</span><small>course</small></div>
+        <div><span class="big" id="finPartner" style="font-size:1.4rem">—</span><small>partner</small></div>
+        <div><span class="big" id="finTasks">0</span><small>tasks done</small></div>
+        <div><span class="big" id="finQuiz">0</span><small>quiz questions right first try</small></div>
+      </div>
+      <p id="finMsg"></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn ghost" id="resetBtn" type="button">Start over</button>
+      </div>
+    </section>
+    <div class="next">Need to move files between Google Drive and your H: drive? Try <a href="google-drive-file-transfer.html">File Transfer: Google Drive ⇄ H:</a>.</div>
+  </main>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="box">
+    <h3 id="modalTitle">Start over?</h3>
+    <p>This clears every tick and quiz answer on this computer.</p>
+    <div class="acts">
+      <button class="btn ghost" id="cancelReset" type="button">Keep my progress</button>
+      <button class="btn" id="confirmReset" type="button">Clear everything</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const K = '<kbd>⊞ Win</kbd>';
+const k = s => s.split('+').map(x => x.trim()==='Win' ? K : `<kbd>${x.trim()}</kbd>`).join(' + ');
+const C = '<strong class="course">your course</strong>';
+const P = '<strong class="partner-name">your partner</strong>';
+
+const SCENARIOS = [
+ {q:'Your partner should read your poster plan but not change it.', a:0, why:'Viewer lets them read without changing anything.'},
+ {q:'A classmate should leave feedback on your essay without changing your words.', a:1, why:'Commenter lets them comment, and you decide what to change.'},
+ {q:'Your group is writing a project plan together.', a:2, why:'Everyone writing together needs Editor.'},
+ {q:'A classmate will check your spelling and suggest fixes you can accept or reject.', a:1, why:'Commenters can make suggestions. You accept or reject each one.'},
+ {q:'You are posting instructions for everyone in your class to read.', a:0, why:'Readers only need Viewer. Nobody can change your instructions by accident.'}
+];
+const ROLES=['Viewer','Commenter','Editor'];
+
+const MISSIONS = [
+ {id:'setup', title:'Get set up', blurb:'Find a partner and open Google Drive.',
+  tasks:[
+   {id:'course', what:'Type the name of your course', how:'Write it the way your teacher does, for example <strong>Makerspace 9</strong>.', auto:'course', practice:'course'},
+   {id:'partner', what:'Type your partner\'s first name', how:'This page uses it in the instructions so you know who to share with.', auto:'partner', practice:'partner'},
+   {id:'drive', what:'Open Google Drive and check your account', how:`Open <strong>drive.google.com</strong> in a new window (${k('Ctrl+N')}) and sign in with your <strong>school</strong> account. Click your profile picture at the top right to check the email address. Snap Drive to the left half with ${k('Win+←')}.`},
+   {id:'email', what:'Find out your partner\'s school email', how:`Ask ${P} for their school email address. In the Share box later, you can also start typing their name and pick them from the list.`}
+  ],
+  tip:'<strong>School accounts only.</strong> Share school work with school accounts. Many school accounts can\'t share with personal Gmail accounts at all.',
+  quiz:{q:'Who should you share school work with?', opts:['Anyone who asks','Classmates and teachers, using school accounts','Your personal Gmail so you can work at home'], a:1, why:'Keep school work in school accounts. Use your school account at home instead of sharing to a personal one.'}
+ },
+ {id:'share', title:'Share a document', blurb:'Make a Google Doc and share it with your partner. Your partner does the same for you.',
+  tasks:[
+   {id:'makedoc', what:'Make a practice Doc', how:`In Drive, click <strong>+ New → Google Docs</strong>. Name it <strong>Sharing practice – your first name</strong> and type a short paragraph about a project you would like to make in ${C}.`},
+   {id:'sharebtn', what:'Click Share', how:'Click the blue <strong>Share</strong> button at the top right of the Doc.'},
+   {id:'addpartner', what:'Add your partner as a Commenter', how:`Type ${P}'s school email or name. Change the role on the right from Editor to <strong>Commenter</strong>.`},
+   {id:'message', what:'Add a message and send', how:'Keep <strong>Notify people</strong> ticked, type a short message like "Please comment on my project idea", and click <strong>Send</strong>.'},
+   {id:'getlink', what:'Paste the link your partner shared with you', how:`When ${P} shares their Doc, you get an email. Open it, or find the Doc in Drive under <strong>Shared with me</strong>. Open the Doc, copy the address from the address bar (${k('Ctrl+L')} then ${k('Ctrl+C')}) and paste it below.`, auto:'link', practice:'link'}
+  ],
+  quiz:{q:'Where do you find files other people shared with you?', opts:['My Drive','Shared with me','Trash'], a:1, why:'Shared with me in Drive\'s left menu lists everything other people shared with you.'}
+ },
+ {id:'roles', title:'Choose the right access', blurb:'Picking the right level of access protects your work. Sort these examples, then try commenting and suggesting.',
+  tasks:[
+   {id:'sorter', what:'Sort the five examples', how:'Pick Viewer, Commenter or Editor for each example below. The box ticks itself when you get all five right.', auto:'sorter', practice:'sorter'},
+   {id:'comment', what:'Comment on your partner\'s Doc', how:`Open ${P}'s Doc. Select a few words, press ${k('Ctrl+Alt+M')} (or click the comment button that appears), type a helpful comment and click <strong>Comment</strong>.`},
+   {id:'suggest', what:'Suggest a change', how:'In the top right of the Doc, switch the pencil menu to <strong>Suggesting</strong>. Change one word. It shows in colour as a suggestion instead of a real change.'},
+   {id:'accept', what:'Accept or reject a suggestion on your Doc', how:'Open your own Doc. Each suggestion from your partner has a ✓ (accept) and ✕ (reject). Pick one for each suggestion, and reply to their comment.'},
+   {id:'editor', what:'Change your partner to Editor', how:`Click <strong>Share</strong> again. Next to ${P}'s name, change Commenter to <strong>Editor</strong> and click <strong>Save</strong>.`}
+  ],
+  tip:'<strong>Commenters can suggest, not change.</strong> When you want feedback on your writing, Commenter is usually the safest choice.',
+  quiz:{q:'You want feedback but you don\'t want anyone changing your words. Which access do you give?', opts:['Viewer','Commenter','Editor'], a:1, why:'Commenters can comment and suggest, and you decide what to accept.'}
+ },
+ {id:'keep', title:'Find and keep shared files', blurb:'A file someone shared with you belongs to them. If they delete it or stop sharing, you lose it.',
+  tasks:[
+   {id:'sharedwithme', what:'Find your partner\'s Doc in Shared with me', how:'In Drive, click <strong>Shared with me</strong> in the left menu. Find your partner\'s Doc. You can sort by <strong>Date shared</strong> to see the newest first.'},
+   {id:'shortcut', what:'Add a shortcut in your own Drive', how:`Right-click the Doc and choose <strong>Organize → Add shortcut</strong>. Pick your ${C} folder and click <strong>Add</strong>. Now it shows up in your folder too. It is still your partner's file.`},
+   {id:'copy', what:'Make your own copy', how:'Open your partner\'s Doc and click <strong>File → Make a copy</strong>. Name it <strong>Copy of …</strong> and pick your course folder. The copy belongs to you and does not change when they edit theirs.'},
+   {id:'owner', what:'Check who owns a file', how:'In Drive, right-click a file and choose <strong>File information → Details</strong>. The <strong>Owner</strong> line tells you whose file it is.'}
+  ],
+  quiz:{q:'Your partner shared a Doc with you, then deleted it. What happens to your shortcut?', opts:['It still works','It stops working','It turns into a copy'], a:1, why:'A shortcut only points to their file. Make a copy if you need to keep your own version.'}
+ },
+ {id:'folder', title:'Share a group folder', blurb:'For group projects, share one folder instead of lots of separate files. Everything inside it is shared automatically.',
+  tasks:[
+   {id:'mkfolder', what:'One partner makes a group folder', how:`Decide which partner goes first. That partner clicks <strong>+ New → New folder</strong> in Drive and names it <strong>${'<span class="course">your course</span>'} – Group project</strong>.`},
+   {id:'sharefolder', what:'Share the folder as Editor', how:`Right-click the folder and choose <strong>Share → Share</strong>. Add ${P} as <strong>Editor</strong> and click <strong>Send</strong>.`},
+   {id:'adddoc', what:'The other partner adds a Doc', how:'The other partner opens the folder from <strong>Shared with me</strong>, clicks <strong>+ New → Google Docs</strong> and names it <strong>Group notes</strong>. Both of you can now see and edit it.'},
+   {id:'moveinto', what:'Drag one of your own Docs into the folder', how:'Each partner drags their <strong>Sharing practice</strong> Doc into the group folder. Drive asks if you want to share it with the folder\'s people. Click <strong>Move</strong>.'}
+  ],
+  tip:'<strong>Who owns what:</strong> the person who makes a file owns it, even inside someone else\'s folder. Ownership matters if someone leaves the group.',
+  quiz:{q:'You share a folder with your group as Editor. Then you add a new Doc to the folder. Who can see the new Doc?', opts:['Only you','Everyone the folder is shared with','Nobody until you share it separately'], a:1, why:'Files inside a shared folder are shared with the same people automatically.'}
+ },
+ {id:'transfer', title:'Transfer ownership', blurb:'When a group member leaves, or a file should belong to someone else, you can hand over ownership of a file.',
+  tasks:[
+   {id:'startxfer', what:'Offer ownership of your practice Doc', how:`Open your <strong>Sharing practice</strong> Doc and click <strong>Share</strong>. Next to ${P}'s name (they must be an Editor), open the role menu and choose <strong>Transfer ownership</strong>, then <strong>Send invitation</strong>.`},
+   {id:'acceptxfer', what:'Accept the ownership your partner offered', how:'Your partner\'s invitation arrives by email. Open their Doc, click <strong>Share</strong>, and click <strong>Accept ownership</strong>. Now you own their Doc and they own yours.'},
+   {id:'checkxfer', what:'Check the new owner', how:'In Drive, right-click the Doc and choose <strong>File information → Details</strong>. The Owner line now shows the new owner.'}
+  ],
+  tip:'<strong>Option missing?</strong> Some school accounts have Transfer ownership turned off. If you don\'t see it, use <strong>File → Make a copy</strong> instead: the person who makes the copy owns it.',
+  quiz:{q:'You offered to transfer ownership to your partner. When does it actually happen?', opts:['Immediately','When your partner accepts','At the end of the school year'], a:1, why:'The other person has to accept before they become the owner.'}
+ },
+ {id:'safe', title:'Fix mistakes and stay safe', blurb:'Know how to undo damage and control who can open your work.',
+  tasks:[
+   {id:'history', what:'Open version history', how:`In your Doc, click <strong>File → Version history → See version history</strong> (or press ${k('Ctrl+Alt+Shift+H')}). Click an older version to see what the Doc looked like. <strong>Restore this version</strong> brings it back if someone wrecks your work.`},
+   {id:'general', what:'Check General access', how:'Click <strong>Share</strong> and look at <strong>General access</strong>. <strong>Restricted</strong> means only the people listed can open it. That is the safest setting. Avoid <strong>Anyone with the link</strong> for school work.'},
+   {id:'remove', what:'Remove someone\'s access', how:`Click <strong>Share</strong>. Next to a person's name, open the role menu and choose <strong>Remove access</strong>, then <strong>Save</strong>. Try it on a practice file, then add ${P} back.`},
+   {id:'tidy', what:'Tidy up', how:'Ask your teacher whether to keep the practice files. If not, right-click each one you own and choose <strong>Move to trash</strong>.'}
+  ],
+  tip:'<strong>Remember:</strong> Editors can delete text, but version history keeps every old version. Almost nothing in a Google Doc is lost for good.',
+  quiz:{q:'A group member deleted half your Doc by mistake. What do you do?', opts:['Start again','Use version history and restore an older version','Delete the Doc'], a:1, why:'Version history keeps old versions, so you can restore the Doc to before the mistake.'}
+ }
+];
+
+// ---------- state ----------
+const KEY='dbss-docs-sharing-v1';
+let S = {done:{}, quiz:{}, name:'', auto:{}, course:'', partner:'', sort:{}};
+try{ const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(S, JSON.parse(raw)); }catch(e){}
+// borrow the course name from the other tutorials if the student did one first
+try{ if(!S.course){ for(const key of ['dbss-win11-missions-v1','dbss-drive-file-transfer-v1','dbss-drive-transfer-v1']){ const w=JSON.parse(localStorage.getItem(key)||'{}'); if(w.course){ S.course=w.course; break; } } } }catch(e){}
+const save=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} };
+const allTasks = MISSIONS.flatMap(m=>m.tasks);
+const esc = v => String(v).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+// ---------- render ----------
+function practiceHTML(type){
+  if(type==='course') return `<div class="practice"><label for="courseIn">My course is called</label><input type="text" id="courseIn" autocomplete="off" placeholder="e.g. Makerspace 9"></div>`;
+  if(type==='partner') return `<div class="practice"><label for="partnerIn">My partner's first name</label><input type="text" id="partnerIn" autocomplete="off" placeholder="e.g. Jordan"></div>`;
+  if(type==='link') return `<div class="practice"><label for="linkIn">Link to your partner's Doc</label><input type="text" id="linkIn" autocomplete="off" placeholder="https://docs.google.com/document/d/…"><span class="status" id="linkStat" aria-live="polite"></span></div>`;
+  if(type==='sorter') return `<div class="practice sorter">${SCENARIOS.map((sc,i)=>`<div class="scen ${S.sort[i]===sc.a?'right':''}" data-s="${i}"><span>${sc.q}</span><div class="opts">${ROLES.map((r,j)=>`<button type="button" data-r="${j}" class="${S.sort[i]===j?(j===sc.a?'right':'wrong'):''}">${r}</button>`).join('')}</div><span class="feedback" aria-live="polite">${S.sort[i]===sc.a?'✓ '+sc.why:''}</span></div>`).join('')}</div>`;
+  return '';
+}
+
+function render(){
+  const host=document.getElementById('missions');
+  host.innerHTML = MISSIONS.map((m,i)=>`
+  <section class="mission" id="m-${m.id}" aria-labelledby="h-${m.id}">
+    <div class="mhead"><div class="badge">${i+1}</div><div><h2 id="h-${m.id}">${m.title}</h2><p>${m.blurb}</p></div></div>
+    <ol class="tasks">
+      ${m.tasks.map(t=>`<li class="task ${S.done[t.id]?'is-done':''}" id="t-${t.id}">
+        <input type="checkbox" id="c-${t.id}" ${S.done[t.id]?'checked':''} data-task="${t.id}">
+        <label for="c-${t.id}">
+          ${t.auto?`<span class="auto">${S.auto[t.id]?'Detected ✓':'Checks itself'}</span>`:''}
+          <span class="what">${t.what}</span><span class="how">${t.how}</span>
+        </label>
+        ${t.practice?`<div style="grid-column:1/-1">${practiceHTML(t.practice)}</div>`:''}
+      </li>`).join('')}
+    </ol>
+    ${m.tip?`<div class="tip">${m.tip}</div>`:''}
+    <div class="quiz" data-m="${m.id}">
+      <span class="q">Check yourself: ${m.quiz.q}</span>
+      <div class="opts">${m.quiz.opts.map((o,j)=>`<button type="button" data-j="${j}">${o}</button>`).join('')}</div>
+      <span class="feedback" aria-live="polite"></span>
+    </div>
+  </section>`).join('');
+  MISSIONS.forEach(m=>{
+    const qs=S.quiz[m.id]; if(!qs) return;
+    const box=host.querySelector(`.quiz[data-m="${m.id}"]`);
+    (qs.tried||[]).forEach(j=>box.querySelector(`[data-j="${j}"]`).classList.add(j===m.quiz.a?'right':'wrong'));
+    if(qs.solved) box.querySelector('.feedback').textContent='✓ '+m.quiz.why;
+  });
+  wire(); update();
+}
+
+function navRender(){
+  document.getElementById('sideNav').innerHTML = MISSIONS.map((m,i)=>{
+    const d=m.tasks.filter(t=>S.done[t.id]).length;
+    return `<button type="button" data-go="m-${m.id}" class="${d===m.tasks.length?'done':''}">
+      <span class="num">${d===m.tasks.length?'✓':i+1}</span><span>${m.title}</span><span class="count">${d}/${m.tasks.length}</span></button>`;
+  }).join('') + `<button type="button" data-go="finish"><span class="num">★</span><span>Mission report</span></button>`;
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>document.getElementById(b.dataset.go).scrollIntoView({behavior:'smooth',block:'start'}));
+}
+
+function update(){
+  const done=allTasks.filter(t=>S.done[t.id]).length;
+  document.getElementById('barFill').style.width=(100*done/allTasks.length)+'%';
+  document.getElementById('progText').textContent=`${done} / ${allTasks.length} tasks`;
+  const quizRight=MISSIONS.filter(m=>S.quiz[m.id]?.first).length;
+  document.getElementById('finTasks').textContent=`${done}/${allTasks.length}`;
+  document.getElementById('finQuiz').textContent=`${quizRight}/${MISSIONS.length}`;
+  const name=(S.name||'').trim();
+  document.getElementById('finMsg').innerHTML = done===allTasks.length
+    ? `<span class="stamp">Sharing Pro${name?': '+esc(name):''}</span>`
+    : `${allTasks.length-done} task${allTasks.length-done===1?'':'s'} left. Use the list on the left to find unfinished missions.`;
+  paintNames(); navRender();
+}
+
+function paintNames(){
+  const c=(S.course||'').trim(), p=(S.partner||'').trim();
+  document.querySelectorAll('.course').forEach(el=>el.textContent = c || 'your course name');
+  document.querySelectorAll('.partner-name').forEach(el=>el.textContent = p || 'your partner');
+  document.getElementById('finCourse').textContent = c || '—';
+  document.getElementById('finPartner').textContent = p || '—';
+}
+
+function setDone(id, val, auto){
+  S.done[id]=val; if(auto) S.auto[id]=true; save();
+  const li=document.getElementById('t-'+id); if(!li) return;
+  li.classList.toggle('is-done', val);
+  li.querySelector('input[type=checkbox]').checked=val;
+  const a=li.querySelector('.auto'); if(a && auto) a.textContent='Detected ✓';
+  update();
+}
+
+function checkLink(v){
+  const st=document.getElementById('linkStat'); st.className='status';
+  v=v.trim(); if(!v){ st.textContent=''; return; }
+  const m=v.match(/^https:\/\/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([\w-]{20,})/);
+  if(m){ st.textContent=`✓ That is a real Google ${m[1]==='document'?'Doc':m[1]==='spreadsheets'?'Sheet':'Slides'} link. Your partner's share reached you.`; st.classList.add('ok'); setDone('getlink',true,true); }
+  else if(/drive\.google\.com/.test(v)){ st.textContent='That is a Google Drive link, not the Doc itself. Open the Doc first, then copy the address.'; st.classList.add('bad'); }
+  else { st.textContent='That doesn\'t look like a Google Doc link. It should start with https://docs.google.com/'; st.classList.add('bad'); }
+}
+
+function wire(){
+  document.querySelectorAll('input[data-task]').forEach(c=>c.onchange=()=>setDone(c.dataset.task,c.checked));
+  document.querySelectorAll('.quiz').forEach(box=>{
+    const m=MISSIONS.find(x=>x.id===box.dataset.m);
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      const st=S.quiz[m.id]||(S.quiz[m.id]={tried:[]});
+      if(st.solved) return;
+      const j=+b.dataset.j; if(!st.tried.includes(j)) st.tried.push(j);
+      const fb=box.querySelector('.feedback');
+      if(j===m.quiz.a){ b.classList.add('right'); st.solved=true; st.first=st.tried.length===1; fb.textContent='✓ '+m.quiz.why; }
+      else { b.classList.add('wrong'); fb.textContent='Not quite. Try another answer.'; }
+      save(); update();
+    });
+  });
+  const co=document.getElementById('courseIn');
+  if(co){ co.value=S.course||''; if(co.value.trim().length>1 && !S.done.course) setDone('course',true,true);
+    co.addEventListener('input',()=>{S.course=co.value; save(); paintNames(); setDone('course', co.value.trim().length>1, true);}); }
+  const pa=document.getElementById('partnerIn');
+  if(pa){ pa.value=S.partner||'';
+    pa.addEventListener('input',()=>{S.partner=pa.value; save(); paintNames(); setDone('partner', pa.value.trim().length>1, true);}); }
+  const li=document.getElementById('linkIn');
+  if(li) li.addEventListener('input',()=>checkLink(li.value));
+  document.querySelectorAll('.scen').forEach(card=>{
+    const i=+card.dataset.s, sc=SCENARIOS[i];
+    card.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      const j=+b.dataset.r; S.sort[i]=j; save();
+      card.querySelectorAll('button').forEach(x=>x.className='');
+      const fb=card.querySelector('.feedback');
+      if(j===sc.a){ b.className='right'; card.classList.add('right'); fb.textContent='✓ '+sc.why; }
+      else { b.className='wrong'; card.classList.remove('right'); fb.textContent=`Not quite. Think about whether they need to read, comment or change it.`; }
+      if(SCENARIOS.every((s,n)=>S.sort[n]===s.a)) setDone('sorter',true,true);
+    });
+  });
+}
+
+// name + reset
+const nameIn=document.getElementById('stuName');
+nameIn.value=S.name||'';
+nameIn.addEventListener('input',()=>{S.name=nameIn.value;save();update();});
+const modal=document.getElementById('modal');
+document.getElementById('resetBtn').onclick=()=>{modal.classList.add('open');document.getElementById('cancelReset').focus();};
+document.getElementById('cancelReset').onclick=()=>modal.classList.remove('open');
+document.getElementById('confirmReset').onclick=()=>{
+  const keepCourse=S.course;
+  S={done:{},quiz:{},name:'',auto:{},course:keepCourse,partner:'',sort:{}};save();nameIn.value='';modal.classList.remove('open');render();window.scrollTo(0,0);
+};
+document.addEventListener('keydown',e=>{if(e.key==='Escape') modal.classList.remove('open');});
+
+render();
+</script>
+</body>
+</html>
