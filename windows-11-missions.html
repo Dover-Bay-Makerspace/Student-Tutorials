@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Windows 11 Navigation Missions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: sticky progress header, mission list on the left, one long column of missions students work through beside their real Windows desktop. */
+:root{
+  --paper:#f3f6fb;
+  --card:#ffffff;
+  --ink:#14213a;
+  --muted:#5a6680;
+  --line:#d5ddea;
+  --blue:#1d5fd1;
+  --blue-soft:#e3ecfb;
+  --key:#fff6d6;
+  --key-line:#d9c37a;
+  --good:#1f8a4c;
+  --good-soft:#e2f4e9;
+  --warn:#a35b00;
+  --warn-soft:#fdf0dc;
+  --bad:#b3261e;
+  --font-display:"Lexend", "Segoe UI", system-ui, sans-serif;
+  --font-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f1522; --card:#172033; --ink:#e7ecf5; --muted:#9aa7c0; --line:#2b3852;
+    --blue:#6ea0ff; --blue-soft:#1d2d4d; --key:#3a3420; --key-line:#7d6c35;
+    --good:#5fd08f; --good-soft:#163627; --warn:#f0b15c; --warn-soft:#3a2c15; --bad:#ff8a80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f1522; --card:#172033; --ink:#e7ecf5; --muted:#9aa7c0; --line:#2b3852;
+  --blue:#6ea0ff; --blue-soft:#1d2d4d; --key:#3a3420; --key-line:#7d6c35;
+  --good:#5fd08f; --good-soft:#163627; --warn:#f0b15c; --warn-soft:#3a2c15; --bad:#ff8a80;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:17px;line-height:1.55}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:1.5rem}
+h2{font-size:1.35rem}
+h3{font-size:1.05rem}
+p{margin:0}
+a{color:var(--blue)}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:4px}
+kbd{display:inline-block;font-family:var(--font-body);font-weight:700;font-size:.85em;background:var(--key);border:1px solid var(--key-line);border-bottom-width:3px;border-radius:6px;padding:0 .45em;line-height:1.5;white-space:nowrap}
+
+header.top{position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
+.brand{display:flex;flex-direction:column}
+.brand small{color:var(--muted);font-size:.85rem}
+.prog{flex:1;min-width:220px;display:flex;align-items:center;gap:12px}
+.bar{flex:1;height:14px;border-radius:999px;background:var(--blue-soft);overflow:hidden}
+.bar span{display:block;height:100%;width:0;background:var(--blue);transition:width .3s}
+.prog b{font-variant-numeric:tabular-nums;min-width:5.5em;text-align:right}
+
+.wrap{display:grid;grid-template-columns:240px minmax(0,1fr);gap:24px;max-width:1100px;margin:0 auto;padding:20px 16px 80px}
+nav.side{position:sticky;top:84px;align-self:start;display:flex;flex-direction:column;gap:4px}
+nav.side button{display:flex;gap:10px;align-items:center;text-align:left;background:none;border:1px solid transparent;border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink)}
+nav.side button:hover{background:var(--card);border-color:var(--line)}
+nav.side .num{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-size:.85rem;background:var(--blue-soft);color:var(--blue)}
+nav.side .done .num{background:var(--good);color:#fff}
+nav.side .count{margin-left:auto;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+main{display:flex;flex-direction:column;gap:28px;min-width:0}
+.intro{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--blue);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+section.mission{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:16px;scroll-margin-top:90px}
+.mhead{display:flex;gap:14px;align-items:flex-start}
+.mhead .badge{flex:none;width:44px;height:44px;border-radius:12px;background:var(--blue);color:#fff;display:grid;place-items:center;font-family:var(--font-display);font-size:1.2rem}
+.mhead p{color:var(--muted);max-width:62ch;margin-top:4px}
+.tip{background:var(--warn-soft);color:var(--ink);border-radius:10px;padding:10px 14px;font-size:.95rem;border-left:4px solid var(--warn)}
+.tip strong{color:var(--warn)}
+
+ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.task{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:background .2s,border-color .2s}
+.task.is-done{background:var(--good-soft);border-color:var(--good)}
+.task input[type=checkbox]{width:24px;height:24px;margin:2px 0 0;accent-color:var(--good);cursor:pointer}
+.task label{cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.task .what{font-weight:700}
+.task .how{color:var(--muted);font-size:.95rem}
+.task .auto{font-size:.8rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.04em}
+.task.is-done .auto{color:var(--good)}
+
+.practice{border:2px dashed var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.practice input[type=text],.practice textarea{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:8px 10px}
+.practice textarea{min-height:70px;resize:vertical}
+.code{font-family:ui-monospace,Consolas,monospace;font-size:1.1rem;background:var(--blue-soft);padding:6px 10px;border-radius:8px;user-select:all;display:inline-block}
+.paste{min-height:110px;display:grid;place-items:center;text-align:center;color:var(--muted);background:var(--paper);border-radius:8px;border:1px solid var(--line);padding:10px}
+.paste img{max-width:100%;max-height:240px;border-radius:6px}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:10px;padding:8px 16px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--blue);border:2px solid var(--blue)}
+.btn:hover{filter:brightness(1.08)}
+.status{font-size:.9rem;font-weight:700}
+.status.ok{color:var(--good)}
+
+/* Taskbar map */
+.tbwrap{overflow-x:auto;border-radius:12px;border:1px solid var(--line);background:var(--paper)}
+.tbwrap svg{display:block;min-width:640px;width:100%;height:auto}
+.hot{cursor:pointer}
+.hot circle{fill:var(--blue)}
+.hot text{fill:#fff;font-family:var(--font-display);font-size:13px}
+.hot.seen circle{fill:var(--good)}
+.tbinfo{background:var(--blue-soft);border-radius:10px;padding:12px 14px;min-height:72px}
+.tbinfo h3{margin-bottom:4px}
+
+/* Quiz */
+.quiz{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.quiz .q{font-weight:700}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 14px;cursor:pointer}
+.opts button:hover{border-color:var(--blue)}
+.opts button.right{background:var(--good);color:#fff;border-color:var(--good)}
+.opts button.wrong{background:transparent;color:var(--bad);border-color:var(--bad);text-decoration:line-through}
+.feedback{font-size:.95rem}
+
+/* Shortcut table */
+.sc{width:100%;border-collapse:collapse;font-size:.95rem}
+.sc td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.sc td:first-child{white-space:nowrap;width:1%}
+
+/* Finish card */
+.finish{background:linear-gradient(135deg,var(--blue),#123f8f);color:#fff;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px;scroll-margin-top:90px}
+.finish input{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:8px 10px;width:min(100%,320px)}
+.finish input::placeholder{color:rgba(255,255,255,.7)}
+.finish .big{font-family:var(--font-display);font-size:2.4rem;font-variant-numeric:tabular-nums}
+.finish .row{display:flex;flex-wrap:wrap;gap:24px}
+.finish .row div{display:flex;flex-direction:column}
+.finish small{opacity:.8}
+.finish .btn.ghost{color:#fff;border-color:#fff}
+.stamp{display:inline-block;background:#fff;color:#123f8f;font-family:var(--font-display);font-weight:700;padding:6px 14px;border-radius:999px}
+
+.modal{position:fixed;inset:0;background:rgba(10,15,30,.55);display:none;place-items:center;z-index:50;padding:16px}
+.modal.open{display:grid}
+.modal .box{background:var(--card);border-radius:14px;padding:20px;max-width:380px;display:flex;flex-direction:column;gap:14px}
+.modal .acts{display:flex;gap:10px;justify-content:flex-end}
+
+@media (max-width:820px){
+  .wrap{grid-template-columns:1fr}
+  nav.side{position:static;flex-direction:row;flex-wrap:wrap}
+  nav.side button{flex:1 1 140px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><h1>Windows 11 Missions</h1><small>Dover Bay Makerspace · Grade 8</small></div>
+  <div class="prog" aria-label="Overall progress">
+    <div class="bar"><span id="barFill"></span></div>
+    <b id="progText">0 / 0 tasks</b>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="side" id="sideNav" aria-label="Missions"></nav>
+  <main id="main">
+    <div class="intro">
+      <h2>How this works</h2>
+      <p>Keep this page open on one side of your screen and do every task on your <strong>real Windows desktop</strong>. Tick the box when you finish a task. Some tasks check themselves: when this page notices you did it, the box ticks on its own.</p>
+      <p>Keys you press look like this: <kbd>Ctrl</kbd> + <kbd>C</kbd>. The <kbd>⊞ Win</kbd> key is the Windows logo key, bottom left of your keyboard. Your progress is saved in this browser, so you can stop and come back.</p>
+    </div>
+    <div id="missions"></div>
+
+    <section class="finish" id="finish" aria-labelledby="finTitle">
+      <h2 id="finTitle">Mission report</h2>
+      <p>Type your name, then show this card to your teacher.</p>
+      <label for="stuName" class="sr">Your name</label>
+      <input id="stuName" type="text" placeholder="First and last name" autocomplete="off">
+      <div class="row">
+        <div><span class="big" id="finTasks">0</span><small>tasks done</small></div>
+        <div><span class="big" id="finQuiz">0</span><small>quiz questions right first try</small></div>
+        <div><span class="big" id="finMissions">0</span><small>missions complete</small></div>
+      </div>
+      <p id="finMsg"></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn ghost" id="resetBtn" type="button">Start over</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="box">
+    <h3 id="modalTitle">Start over?</h3>
+    <p>This clears every tick and quiz answer on this computer.</p>
+    <div class="acts">
+      <button class="btn ghost" id="cancelReset" type="button">Keep my progress</button>
+      <button class="btn" id="confirmReset" type="button">Clear everything</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const K = '<kbd>⊞ Win</kbd>';
+const k = s => s.split('+').map(x => x.trim()==='Win' ? K : `<kbd>${x.trim()}</kbd>`).join(' + ');
+
+const MISSIONS = [
+ {id:'setup', title:'Get set up', blurb:'Put this page on one half of the screen so your other apps fit beside it.',
+  tasks:[
+   {id:'snap', what:`Snap this browser window to the right half`, how:`Click anywhere on this page, then press ${k('Win+→')}. If Windows shows other windows on the left, click one or press <kbd>Esc</kbd>.`, auto:'snap'},
+   {id:'leftside', what:'Notice the empty left half', how:'That side is your workspace. Every app you open in these missions goes there.'}
+  ],
+  quiz:{q:'Which keys snap a window to the left half of the screen?', opts:['Ctrl + ←','Win + ←','Alt + ←'], a:1, why:'Win plus an arrow key snaps the window. Win + ↑ maximizes it.'}
+ },
+ {id:'taskbar', title:'The taskbar', blurb:'The strip along the bottom of the screen. Click each numbered dot below to learn what that part does, then find it on your real taskbar.',
+  map:true,
+  tasks:[
+   {id:'tbmap', what:'Learn all 7 parts of the taskbar map', how:'Click every numbered dot in the picture above.', auto:'map'},
+   {id:'tbhover', what:'Hover over each icon on your real taskbar', how:'Rest the mouse pointer on an icon without clicking. A label pops up telling you its name.'},
+   {id:'qs', what:'Open Quick Settings', how:`Click the Wi-Fi / speaker icons at the bottom right, or press ${k('Win+A')}. Find the volume slider. Press <kbd>Esc</kbd> to close it.`},
+   {id:'notif', what:'Open the calendar and notifications', how:`Click the clock, or press ${k('Win+N')}. Close it with <kbd>Esc</kbd>.`}
+  ],
+  quiz:{q:'Where do you find the volume slider?', opts:['In Quick Settings','In File Explorer','In the Start menu'], a:0, why:'Quick Settings (Win + A) holds volume, Wi-Fi and brightness.'}
+ },
+ {id:'start', title:'Start menu & search', blurb:'The fastest way to open any app is to press Win and start typing its name.',
+  tasks:[
+   {id:'openstart', what:'Open and close the Start menu', how:`Press ${K} once to open it and again to close it. You can also click the Start button on the taskbar.`},
+   {id:'allapps', what:'Find the full list of apps', how:'Open Start. Look for <strong>All</strong> or <strong>All apps</strong>. On some computers it is a button at the top right; on newer ones you scroll down.'},
+   {id:'calc', what:'Open Calculator by typing', how:`Press ${K}, type <strong>calc</strong>, and press <kbd>Enter</kbd>. You did not need to click anything.`},
+   {id:'pin', what:'Pin Calculator to the taskbar', how:'Right-click the Calculator icon on the taskbar and choose <strong>Pin to taskbar</strong>. Close Calculator and check the icon stays.'},
+   {id:'unpin', what:'Unpin it again', how:'Right-click the pinned icon and choose <strong>Unpin from taskbar</strong>. Leave the taskbar tidy for the next class.'}
+  ],
+  quiz:{q:'What is the quickest way to open an app you cannot see?', opts:['Restart the computer','Press Win and type its name','Look through every folder'], a:1, why:'Windows search finds apps, settings and files as you type.'}
+ },
+ {id:'windows', title:'Controlling windows', blurb:'Every app opens in a window. These three buttons in the top right corner control it: minimize ( — ), maximize ( ☐ ), close ( ✕ ).',
+  tasks:[
+   {id:'minmax', what:'Minimize, maximize and restore Calculator', how:'Open Calculator. Click — to hide it, then click its taskbar icon to bring it back. Click ☐ to fill the screen, then click it again to restore.'},
+   {id:'drag', what:'Move and resize a window', how:'Drag the title bar (the top strip) to move it. Drag any edge or corner to change its size.'},
+   {id:'layouts', what:'Use Snap Layouts', how:`Hover over the maximize ☐ button (do not click) or press ${k('Win+Z')}. Pick a box in one of the layouts and the window jumps there.`},
+   {id:'alttab', what:'Switch apps with Alt + Tab', how:'Press the button below, then hold <kbd>Alt</kbd> and tap <kbd>Tab</kbd> to jump to Calculator. Do it again to come back here.', auto:'alttab', practice:'alttab'},
+   {id:'desk', what:'Show the desktop', how:`Press ${k('Win+D')} to hide every window. Press it again to bring them all back.`},
+   {id:'taskview', what:'Open Task View', how:`Press ${k('Win+Tab')} to see all open windows as tiles. Click one to switch to it.`},
+   {id:'close', what:'Close Calculator', how:`Click ✕, or press ${k('Alt+F4')} while Calculator is the active window. Careful: Alt + F4 closes whatever window you are in.`}
+  ],
+  tip:'<strong>Heads up:</strong> Minimize hides a window but keeps it running. Close (✕) actually quits the app.',
+  quiz:{q:'You minimized an app. Where did it go?', opts:['It was deleted','It is still running on the taskbar','It moved to the Recycle Bin'], a:1, why:'Minimized apps keep running. Click the taskbar icon to bring them back.'}
+ },
+ {id:'files', title:'File Explorer', blurb:'File Explorer is where your files and folders live. You will use it in every class that saves work.',
+  tasks:[
+   {id:'openfe', what:'Open File Explorer', how:`Press ${k('Win+E')} or click the yellow folder on the taskbar.`},
+   {id:'tour', what:'Find Documents, Downloads and This PC', how:'Look down the left side (the navigation pane). Click each one and look at what is inside.'},
+   {id:'hdrive', what:'Find your H: drive under This PC', how:'Click <strong>This PC</strong> in the left pane. Look for the drive with <strong>your own name</strong> on it, followed by <strong>(H:)</strong>, for example <strong>Jordan Lee (H:)</strong>. It may be under <strong>Network locations</strong>. Your name on it means it belongs only to you. Double-click it to open it.'},
+   {id:'pinh', what:'Pin H: so it is always one click away', how:'Right-click your H: drive and choose <strong>Pin to Quick access</strong>. Now H: shows near the top of the left pane every time you open File Explorer.'},
+   {id:'checkbar', what:'Check the address bar', how:'With H: open, look at the address bar along the top of File Explorer. It should read <strong>This PC › Your Name (H:)</strong>. Whenever you are not sure where you are, look there.'},
+   {id:'newfolder', what:'Make a new folder on H:', how:`Open your H: drive. Press ${k('Ctrl+Shift+N')} or click <strong>New → Folder</strong>. A folder called <strong>New folder</strong> appears. Press <kbd>Enter</kbd> to keep that name for now.`},
+   {id:'rename', what:'Rename it to "Makerspace 8"', how:'Click <strong>New folder</strong> once, press <kbd>F2</kbd>, type <strong>Makerspace 8</strong> exactly (capital M, a space, then 8), and press <kbd>Enter</kbd>. This is where all your Makerspace work goes this year.'},
+   {id:'ext', what:'Turn on file name extensions', how:'Click <strong>View → Show → File name extensions</strong>. Now you can see endings like <code>.txt</code>, <code>.jpg</code> and <code>.stl</code> that tell you what kind of file it is.'},
+   {id:'views', what:'Switch views', how:'Click <strong>View</strong> and try <strong>Large icons</strong> and then <strong>Details</strong>. Details shows the date each file changed.'},
+   {id:'search', what:'Search inside a folder', how:'Click the search box at the top right of File Explorer and type part of a file name.'}
+  ],
+  tip:'<strong>Important:</strong> Save all your work on your <strong>H: drive</strong>. Work saved on the <strong>C: drive</strong> stays on this one computer and gets erased, so it will be gone next class.',
+  quiz:{q:'Which key renames a selected file or folder?', opts:['F2','F5','Delete'], a:0, why:'F2 starts renaming. F5 refreshes the folder.'}
+ },
+ {id:'save', title:'Saving work', blurb:'Lost work usually means it was saved in the wrong place. Practise saving on purpose.',
+  tasks:[
+   {id:'notepad', what:'Open Notepad and type a sentence', how:`Press ${K}, type <strong>notepad</strong>, press <kbd>Enter</kbd>. Type one sentence about your favourite thing to make.`},
+   {id:'saveas', what:'Save it into Makerspace 8 on H:', how:`Press ${k('Ctrl+S')}. In the Save window, click <strong>This PC</strong> (or your pinned H: drive) in the left pane, open <strong>H:</strong>, then open <strong>Makerspace 8</strong>. Name the file <strong>my-first-file</strong>.`},
+   {id:'savecheck', what:'Check the address bar before you click Save', how:'Look at the address bar at the top of the Save window. It must read <strong>Your Name (H:) › Makerspace 8</strong>. If it shows Documents, Downloads, Desktop or <strong>C:</strong>, go back to your H: drive first. Then click <strong>Save</strong>.'},
+   {id:'edit', what:'Change the file and save again', how:`Add another sentence and press ${k('Ctrl+S')}. This time it saves straight away because the file already has a name and a home.`},
+   {id:'findit', what:'Find your file again', how:'Close Notepad. Open File Explorer, go to H: → <strong>Makerspace 8</strong>, and double-click the file to open it.'},
+   {id:'delete', what:'Make a copy, then delete the copy', how:`Click your file, press ${k('Ctrl+C')} then ${k('Ctrl+V')}. A file called <strong>my-first-file - Copy</strong> appears. Select only the copy and press <kbd>Delete</kbd>. Files deleted from H: may skip the Recycle Bin and be gone for good, so always check what you selected first.`}
+  ],
+  tip:'<strong>Rule of thumb:</strong> Save to H:, save early, save often. Ctrl + S takes one second.',
+  quiz:{q:'You want your project to still be there next class. Where do you save it?', opts:['On the C: drive','On your H: drive','On the desktop of this computer'], a:1, why:'Your H: drive keeps your work. Work saved on C: stays on one computer and gets erased.'}
+ },
+ {id:'downloads', title:'Rescue your downloads', blurb:'Files you download, and files that programs like Layerling save for you, go to the Downloads folder on the C: drive. Anything on C: gets erased, so you have to move those files to your H: drive yourself.',
+  tasks:[
+   {id:'dlsave', what:'Put a test file in Downloads', how:`Open Notepad and press ${k('Ctrl+N')} for a fresh tab, so you do not change your earlier file. Type <strong>download test</strong> and press ${k('Ctrl+S')}. Click <strong>Downloads</strong> in the left pane, name the file <strong>download-test</strong> and click Save. This is where Layerling and your web browser put files.`},
+   {id:'dlfind', what:'Find it in the Downloads folder', how:'Open File Explorer and click <strong>Downloads</strong> in the left pane. Switch to <strong>View → Details</strong>. The newest files are usually at the top under <strong>Today</strong>. If they are not, click the <strong>Date modified</strong> heading.'},
+   {id:'dlmove', what:'Move it to Makerspace 8 on H:', how:`Click the file and press ${k('Ctrl+X')} (cut). Go to your H: drive, open <strong>Makerspace 8</strong>, and press ${k('Ctrl+V')} (paste). Cut and paste <strong>moves</strong> the file, so it is no longer in Downloads.`},
+   {id:'dlcheck', what:'Check that it arrived', how:'Look in Makerspace 8: <strong>download-test</strong> should be there. Go back to Downloads: it should be gone.'},
+   {id:'dlcopy', what:'Know the difference between copy and move', how:`${k('Ctrl+C')} then ${k('Ctrl+V')} <strong>copies</strong>: you end up with two files, one in Downloads and one on H:. ${k('Ctrl+X')} then ${k('Ctrl+V')} <strong>moves</strong>: one file, now on H:. Either way your work is safe once it is on H:.`}
+  ],
+  tip:'<strong>End-of-class habit:</strong> Before you sign out, open Downloads and move anything you made today into H: → Makerspace 8.',
+  quiz:{q:'Layerling saved your file to Downloads. What should you do before class ends?', opts:['Nothing, it is saved','Move or copy it to H: → Makerspace 8','Move it to the desktop'], a:1, why:'Downloads is on the C: drive, which gets erased. Your work is only safe on H:.'}
+ },
+ {id:'shortcuts', title:'Shortcut skills', blurb:'These keys work in almost every app. The boxes below check your work as you go.',
+  tasks:[
+   {id:'copy', what:'Copy and paste', how:`Select the code below, press ${k('Ctrl+C')}, click in the box under it and press ${k('Ctrl+V')}.`, auto:'copy', practice:'copy'},
+   {id:'undo', what:'Undo a mistake', how:`Type a few words in the box, then press ${k('Ctrl+Z')} to undo.`, auto:'undo', practice:'undo'},
+   {id:'emoji', what:'Insert an emoji', how:`Click in the box and press ${k('Win+.')} (the period key). Pick any emoji.`, auto:'emoji', practice:'emoji'},
+   {id:'snip', what:'Take a screenshot and paste it here', how:`Press ${k('Win+Shift+S')}, drag a box around part of your screen, then click the grey box below and press ${k('Ctrl+V')}.`, auto:'shot', practice:'shot'},
+   {id:'clip', what:'Look at clipboard history', how:`Press ${k('Win+V')}. If it says it is off, you can switch it on, or skip this one if your school computer blocks it.`}
+  ],
+  table:true,
+  quiz:{q:'Which shortcut takes a screenshot of part of the screen?', opts:['Win + Shift + S','Ctrl + S','Alt + Tab'], a:0, why:'Win + Shift + S opens the Snipping Tool. Ctrl + S saves.'}
+ },
+ {id:'settings', title:'Settings & getting unstuck', blurb:'Know where to change things and what to do when an app freezes.',
+  tasks:[
+   {id:'openset', what:'Open Settings', how:`Press ${k('Win+I')}. Look at the list on the left. Some settings may be locked on school computers; that is normal.`},
+   {id:'display', what:'Find display scale', how:'Go to <strong>System → Display</strong> and find <strong>Scale</strong>. This makes text bigger or smaller. Look, but leave it as it is.'},
+   {id:'searchset', what:'Search Settings', how:'Click the search box at the top of Settings and type <strong>mouse</strong>. Open the mouse settings and close Settings.'},
+   {id:'taskmgr', what:'Open Task Manager', how:`Press ${k('Ctrl+Shift+Esc')}. If an app ever freezes, select it here and click <strong>End task</strong>. Close Task Manager for now.`},
+   {id:'lock', what:'Know how to lock your computer', how:`${k('Win+L')} locks the screen so nobody can use your account when you walk away. Try it at the very end of class, because you will need to sign back in.`}
+  ],
+  quiz:{q:'An app has frozen and will not close. What should you open?', opts:['Task Manager','Notepad','Recycle Bin'], a:0, why:'Ctrl + Shift + Esc opens Task Manager, where End task closes stuck apps.'}
+ }
+];
+
+const TASKBAR = [
+ {n:1, x:60,  title:'Widgets', text:'News, weather and more. Some school computers turn this off.'},
+ {n:2, x:250, title:'Start button', text:'Opens the Start menu: pinned apps, recent files and the full app list. Shortcut: the Win key.'},
+ {n:3, x:330, title:'Search', text:'Type to find apps, files and settings. Pressing Win and typing does the same thing.'},
+ {n:4, x:410, title:'Task View', text:'Shows every open window, and lets you add extra desktops. Shortcut: Win + Tab.'},
+ {n:5, x:500, title:'Pinned and open apps', text:'Apps you pin stay here. A small line under an icon means the app is open right now.'},
+ {n:6, x:760, title:'Quick Settings', text:'Wi-Fi, volume and battery. Click it to change them. Shortcut: Win + A.'},
+ {n:7, x:860, title:'Clock and notifications', text:'Shows the date, a calendar and your notifications. Shortcut: Win + N.'}
+];
+
+// ---------- state ----------
+const KEY='dbss-win11-missions-v1';
+let S = {done:{}, quiz:{}, seen:{}, name:'', auto:{}};
+try{ const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(S, JSON.parse(raw)); }catch(e){}
+const save=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} };
+
+const allTasks = MISSIONS.flatMap(m=>m.tasks.map(t=>({...t, m:m.id})));
+
+// ---------- render ----------
+function taskbarSVG(){
+  const icon = (x, inner) => `<g transform="translate(${x},34)">${inner}</g>`;
+  const pins = [470,500,530,560].map((x,i)=>icon(x-12,
+     i===0?'<rect x="2" y="6" width="20" height="14" rx="2" fill="#f2b632"/><rect x="2" y="3" width="9" height="5" rx="1" fill="#f2b632"/>'
+    :i===1?'<circle cx="12" cy="12" r="10" fill="#3c8be6"/><circle cx="12" cy="12" r="4" fill="#bfe0ff"/>'
+    :i===2?'<rect x="3" y="2" width="18" height="20" rx="3" fill="#7a5cd6"/><rect x="7" y="6" width="10" height="3" fill="#fff"/>'
+    :'<rect x="3" y="3" width="18" height="18" rx="4" fill="#2a9d6a"/><path d="M8 12h8M12 8v8" stroke="#fff" stroke-width="2"/>')
+    + (i<2?`<rect x="${x-4}" y="62" width="8" height="3" rx="1.5" fill="#6ea0ff"/>`:'')).join('');
+  return `<svg viewBox="0 0 940 150" role="img" aria-label="Diagram of the Windows 11 taskbar with seven numbered parts">
+  <rect x="10" y="20" width="920" height="52" rx="8" fill="#202837"/>
+  ${icon(48,'<rect x="0" y="2" width="24" height="18" rx="3" fill="#4fa3e0"/><circle cx="17" cy="9" r="4" fill="#ffd15c"/>')}
+  ${icon(238,'<rect x="0" y="0" width="11" height="11" rx="1" fill="#4fa3f7"/><rect x="13" y="0" width="11" height="11" rx="1" fill="#4fa3f7"/><rect x="0" y="13" width="11" height="11" rx="1" fill="#4fa3f7"/><rect x="13" y="13" width="11" height="11" rx="1" fill="#4fa3f7"/>')}
+  <rect x="278" y="32" width="104" height="28" rx="14" fill="#2f394c"/>
+  <circle cx="296" cy="45" r="6" fill="none" stroke="#cfd7e6" stroke-width="2"/><path d="M300 49l5 5" stroke="#cfd7e6" stroke-width="2"/>
+  <text x="312" y="50" fill="#aab4c7" font-size="13" font-family="Segoe UI, sans-serif">Search</text>
+  ${icon(398,'<rect x="0" y="4" width="16" height="14" rx="2" fill="none" stroke="#cfd7e6" stroke-width="2"/><rect x="8" y="0" width="16" height="14" rx="2" fill="#202837" stroke="#cfd7e6" stroke-width="2"/>')}
+  ${pins}
+  <path d="M700 50l5-6 5 6" stroke="#cfd7e6" stroke-width="2" fill="none"/>
+  <rect x="722" y="32" width="78" height="28" rx="6" fill="#2a3346"/>
+  <path d="M732 47q8-8 16 0M736 51q4-4 8 0" stroke="#cfd7e6" stroke-width="2" fill="none"/>
+  <path d="M758 42h4l5-4v16l-5-4h-4z" fill="#cfd7e6"/>
+  <rect x="776" y="40" width="16" height="10" rx="2" fill="none" stroke="#cfd7e6" stroke-width="2"/><rect x="778" y="42" width="9" height="6" fill="#5fd08f"/>
+  <text x="860" y="44" fill="#e7ecf5" font-size="12" font-family="Segoe UI, sans-serif" text-anchor="middle">10:42 AM</text>
+  <text x="860" y="60" fill="#e7ecf5" font-size="12" font-family="Segoe UI, sans-serif" text-anchor="middle">2026-11-16</text>
+  ${TASKBAR.map(p=>`<line x1="${p.x}" y1="74" x2="${p.x}" y2="104" stroke="currentColor" stroke-opacity=".35"/>
+   <g class="hot ${S.seen[p.n]?'seen':''}" data-n="${p.n}" tabindex="0" role="button" aria-label="Part ${p.n}: ${p.title}">
+     <circle cx="${p.x}" cy="118" r="15"/><text x="${p.x}" y="123" text-anchor="middle">${p.n}</text></g>`).join('')}
+  </svg>`;
+}
+
+function practiceHTML(type){
+  if(type==='copy') return `<div class="practice"><span class="code" id="codeSrc">MAKER-8-WIN11</span>
+    <label for="copyIn">Paste the code here</label><input type="text" id="copyIn" autocomplete="off"><span class="status" id="copyStat"></span></div>`;
+  if(type==='undo') return `<div class="practice"><label for="undoIn">Type, then press Ctrl + Z</label><textarea id="undoIn"></textarea><span class="status" id="undoStat"></span></div>`;
+  if(type==='emoji') return `<div class="practice"><label for="emojiIn">Click here, then press Win + .</label><input type="text" id="emojiIn" autocomplete="off"><span class="status" id="emojiStat"></span></div>`;
+  if(type==='shot') return `<div class="practice"><div class="paste" id="pasteZone" tabindex="0" aria-label="Click here and press Ctrl + V to paste your screenshot">Click here, then press Ctrl + V</div><span class="status" id="shotStat"></span></div>`;
+  if(type==='alttab') return `<div class="practice"><button class="btn" type="button" id="altBtn">I'm ready: start the Alt + Tab check</button><span class="status" id="altStat"></span></div>`;
+  return '';
+}
+
+const SC = [
+ ['Win','Open or close Start'],['Win + E','File Explorer'],['Win + I','Settings'],['Win + D','Show the desktop'],
+ ['Win + ← / →','Snap window left or right'],['Win + Z','Snap Layouts'],['Alt + Tab','Switch between apps'],
+ ['Ctrl + C / V / X','Copy, paste, cut'],['Ctrl + Z','Undo'],['Ctrl + S','Save'],['Win + Shift + S','Screenshot'],
+ ['Win + V','Clipboard history'],['Ctrl + Shift + Esc','Task Manager'],['Win + L','Lock the computer']
+];
+
+function render(){
+  const host=document.getElementById('missions');
+  host.innerHTML = MISSIONS.map((m,i)=>`
+  <section class="mission" id="m-${m.id}" aria-labelledby="h-${m.id}">
+    <div class="mhead"><div class="badge">${i+1}</div><div><h2 id="h-${m.id}">${m.title}</h2><p>${m.blurb}</p></div></div>
+    ${m.map?`<div class="tbwrap">${taskbarSVG()}</div><div class="tbinfo" id="tbInfo" aria-live="polite"><h3>Click a number</h3><p>Each dot points at part of the taskbar.</p></div>`:''}
+    ${m.tip?`<div class="tip">${m.tip}</div>`:''}
+    <ol class="tasks">
+      ${m.tasks.map(t=>`<li class="task ${S.done[t.id]?'is-done':''}" id="t-${t.id}">
+        <input type="checkbox" id="c-${t.id}" ${S.done[t.id]?'checked':''} data-task="${t.id}">
+        <label for="c-${t.id}">
+          ${t.auto?`<span class="auto">${S.auto[t.id]?'Detected ✓':'Checks itself'}</span>`:''}
+          <span class="what">${t.what}</span><span class="how">${t.how}</span>
+        </label>
+        ${t.practice?`<div style="grid-column:1/-1">${practiceHTML(t.practice)}</div>`:''}
+      </li>`).join('')}
+    </ol>
+    ${m.table?`<details><summary><strong>Shortcut cheat sheet</strong></summary><table class="sc">${SC.map(r=>`<tr><td>${k(r[0])}</td><td>${r[1]}</td></tr>`).join('')}</table></details>`:''}
+    <div class="quiz" data-m="${m.id}">
+      <span class="q">Check yourself: ${m.quiz.q}</span>
+      <div class="opts">${m.quiz.opts.map((o,j)=>`<button type="button" data-j="${j}">${o}</button>`).join('')}</div>
+      <span class="feedback" aria-live="polite"></span>
+    </div>
+  </section>`).join('');
+
+  // restore quiz state
+  MISSIONS.forEach(m=>{
+    const qs=S.quiz[m.id]; if(!qs) return;
+    const box=host.querySelector(`.quiz[data-m="${m.id}"]`);
+    (qs.tried||[]).forEach(j=>box.querySelector(`[data-j="${j}"]`).classList.add(j===m.quiz.a?'right':'wrong'));
+    if(qs.solved) box.querySelector('.feedback').textContent='✓ '+m.quiz.why;
+  });
+  wire();
+  update();
+}
+
+function navRender(){
+  document.getElementById('sideNav').innerHTML = MISSIONS.map((m,i)=>{
+    const d=m.tasks.filter(t=>S.done[t.id]).length;
+    return `<button type="button" data-go="m-${m.id}" class="${d===m.tasks.length?'done':''}">
+      <span class="num">${d===m.tasks.length?'✓':i+1}</span><span>${m.title}</span><span class="count">${d}/${m.tasks.length}</span></button>`;
+  }).join('') + `<button type="button" data-go="finish"><span class="num">★</span><span>Mission report</span></button>`;
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>document.getElementById(b.dataset.go).scrollIntoView({behavior:'smooth',block:'start'}));
+}
+
+function update(){
+  const done=allTasks.filter(t=>S.done[t.id]).length;
+  document.getElementById('barFill').style.width=(100*done/allTasks.length)+'%';
+  document.getElementById('progText').textContent=`${done} / ${allTasks.length} tasks`;
+  const quizRight=MISSIONS.filter(m=>S.quiz[m.id]?.first).length;
+  const mDone=MISSIONS.filter(m=>m.tasks.every(t=>S.done[t.id])).length;
+  document.getElementById('finTasks').textContent=`${done}/${allTasks.length}`;
+  document.getElementById('finQuiz').textContent=`${quizRight}/${MISSIONS.length}`;
+  document.getElementById('finMissions').textContent=`${mDone}/${MISSIONS.length}`;
+  const name=(S.name||'').trim();
+  document.getElementById('finMsg').innerHTML = done===allTasks.length
+    ? `<span class="stamp">Windows 11 Navigator${name?': '+name.replace(/[<>&]/g,''):''}</span>`
+    : `${allTasks.length-done} task${allTasks.length-done===1?'':'s'} left. Use the list on the left to find unfinished missions.`;
+  navRender();
+}
+
+function setDone(id, val, auto){
+  S.done[id]=val; if(auto) S.auto[id]=true; save();
+  const li=document.getElementById('t-'+id); if(!li) return;
+  li.classList.toggle('is-done', val);
+  li.querySelector('input[type=checkbox]').checked=val;
+  const a=li.querySelector('.auto'); if(a && auto) a.textContent='Detected ✓';
+  update();
+}
+
+function wire(){
+  document.querySelectorAll('input[data-task]').forEach(c=>c.onchange=()=>setDone(c.dataset.task,c.checked));
+
+  document.querySelectorAll('.quiz').forEach(box=>{
+    const m=MISSIONS.find(x=>x.id===box.dataset.m);
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      const st=S.quiz[m.id]||(S.quiz[m.id]={tried:[]});
+      if(st.solved) return;
+      const j=+b.dataset.j; if(!st.tried.includes(j)) st.tried.push(j);
+      const fb=box.querySelector('.feedback');
+      if(j===m.quiz.a){ b.classList.add('right'); st.solved=true; st.first=st.tried.length===1; fb.textContent='✓ '+m.quiz.why; }
+      else { b.classList.add('wrong'); fb.textContent='Not quite. Try another answer.'; }
+      save(); update();
+    });
+  });
+
+  // taskbar map
+  document.querySelectorAll('.hot').forEach(h=>{
+    const show=()=>{
+      const p=TASKBAR.find(x=>x.n==h.dataset.n);
+      document.getElementById('tbInfo').innerHTML=`<h3>${p.n}. ${p.title}</h3><p>${p.text}</p>`;
+      S.seen[p.n]=true; h.classList.add('seen'); save();
+      if(TASKBAR.every(x=>S.seen[x.n])) setDone('tbmap',true,true);
+    };
+    h.addEventListener('click',show);
+    h.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}});
+  });
+
+  // copy / paste
+  const ci=document.getElementById('copyIn');
+  if(ci) ci.addEventListener('input',()=>{
+    if(ci.value.trim().toUpperCase()==='MAKER-8-WIN11'){document.getElementById('copyStat').textContent='✓ Perfect copy.';document.getElementById('copyStat').className='status ok';setDone('copy',true,true);}
+  });
+  // undo
+  const ui=document.getElementById('undoIn');
+  if(ui) ui.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&ui.value.length){
+      document.getElementById('undoStat').textContent='✓ Undo works here and in almost every app.';document.getElementById('undoStat').className='status ok';setDone('undo',true,true);}
+  });
+  // emoji
+  const ei=document.getElementById('emojiIn');
+  if(ei) ei.addEventListener('input',()=>{
+    if(/\p{Extended_Pictographic}/u.test(ei.value)){document.getElementById('emojiStat').textContent='✓ Nice pick.';document.getElementById('emojiStat').className='status ok';setDone('emoji',true,true);}
+  });
+  // screenshot paste
+  const pz=document.getElementById('pasteZone');
+  if(pz) pz.addEventListener('paste',e=>{
+    const items=[...(e.clipboardData?.items||[])];
+    const img=items.find(i=>i.type.startsWith('image/'));
+    const st=document.getElementById('shotStat');
+    if(!img){st.textContent='That was text, not a picture. Take the screenshot with Win + Shift + S first.';st.className='status';return;}
+    e.preventDefault();
+    const url=URL.createObjectURL(img.getAsFile());
+    pz.innerHTML=`<img src="${url}" alt="Your screenshot">`;
+    st.textContent='✓ Screenshot pasted.';st.className='status ok';setDone('snip',true,true);
+  });
+  // alt-tab
+  const ab=document.getElementById('altBtn');
+  if(ab){
+    let armed=false, left=false;
+    ab.onclick=()=>{armed=true;left=false;document.getElementById('altStat').textContent='Waiting… hold Alt and tap Tab to leave this window, then come back.';};
+    window.addEventListener('blur',()=>{if(armed) left=true;});
+    window.addEventListener('focus',()=>{
+      if(armed&&left){armed=false;document.getElementById('altStat').textContent='✓ You switched away and back.';document.getElementById('altStat').className='status ok';setDone('alttab',true,true);}
+    });
+  }
+}
+
+// snap detection (best effort)
+function checkSnap(){
+  try{
+    if(S.done.snap) return;
+    const w=window.outerWidth, sw=screen.availWidth;
+    if(w && sw && w < sw*0.7 && w > sw*0.3) setDone('snap',true,true);
+  }catch(e){}
+}
+
+// name + reset
+const nameIn=document.getElementById('stuName');
+nameIn.value=S.name||'';
+nameIn.addEventListener('input',()=>{S.name=nameIn.value;save();update();});
+const modal=document.getElementById('modal');
+document.getElementById('resetBtn').onclick=()=>{modal.classList.add('open');document.getElementById('cancelReset').focus();};
+document.getElementById('cancelReset').onclick=()=>modal.classList.remove('open');
+document.getElementById('confirmReset').onclick=()=>{
+  S={done:{},quiz:{},seen:{},name:'',auto:{}};save();nameIn.value='';modal.classList.remove('open');render();window.scrollTo(0,0);
+};
+document.addEventListener('keydown',e=>{if(e.key==='Escape') modal.classList.remove('open');});
+
+render();
+checkSnap();
+window.addEventListener('resize',checkSnap);
+</script>
+</body>
+</html>
