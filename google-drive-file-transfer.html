@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Google Drive File Transfer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: sticky progress header, mission list on the left, missions in one column beside Google Drive and File Explorer. */
+:root{
+  --paper:#f3f6fb;
+  --card:#ffffff;
+  --ink:#14213a;
+  --muted:#5a6680;
+  --line:#d5ddea;
+  --blue:#1d5fd1;
+  --blue-soft:#e3ecfb;
+  --key:#fff6d6;
+  --key-line:#d9c37a;
+  --good:#1f8a4c;
+  --good-soft:#e2f4e9;
+  --warn:#a35b00;
+  --warn-soft:#fdf0dc;
+  --bad:#b3261e;
+  --font-display:"Lexend", "Segoe UI", system-ui, sans-serif;
+  --font-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f1522; --card:#172033; --ink:#e7ecf5; --muted:#9aa7c0; --line:#2b3852;
+    --blue:#6ea0ff; --blue-soft:#1d2d4d; --key:#3a3420; --key-line:#7d6c35;
+    --good:#5fd08f; --good-soft:#163627; --warn:#f0b15c; --warn-soft:#3a2c15; --bad:#ff8a80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f1522; --card:#172033; --ink:#e7ecf5; --muted:#9aa7c0; --line:#2b3852;
+  --blue:#6ea0ff; --blue-soft:#1d2d4d; --key:#3a3420; --key-line:#7d6c35;
+  --good:#5fd08f; --good-soft:#163627; --warn:#f0b15c; --warn-soft:#3a2c15; --bad:#ff8a80;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:17px;line-height:1.55}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:1.5rem}
+h2{font-size:1.35rem}
+h3{font-size:1.05rem}
+p{margin:0}
+a{color:var(--blue)}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:4px}
+kbd{display:inline-block;font-family:var(--font-body);font-weight:700;font-size:.85em;background:var(--key);border:1px solid var(--key-line);border-bottom-width:3px;border-radius:6px;padding:0 .45em;line-height:1.5;white-space:nowrap}
+
+header.top{position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--line);padding:12px 20px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
+.brand{display:flex;flex-direction:column}
+.brand small{color:var(--muted);font-size:.85rem}
+.prog{flex:1;min-width:220px;display:flex;align-items:center;gap:12px}
+.bar{flex:1;height:14px;border-radius:999px;background:var(--blue-soft);overflow:hidden}
+.bar span{display:block;height:100%;width:0;background:var(--blue);transition:width .3s}
+.prog b{font-variant-numeric:tabular-nums;min-width:5.5em;text-align:right}
+
+.wrap{display:grid;grid-template-columns:240px minmax(0,1fr);gap:24px;max-width:1100px;margin:0 auto;padding:20px 16px 80px}
+nav.side{position:sticky;top:84px;align-self:start;display:flex;flex-direction:column;gap:4px}
+nav.side button{display:flex;gap:10px;align-items:center;text-align:left;background:none;border:1px solid transparent;border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink)}
+nav.side button:hover{background:var(--card);border-color:var(--line)}
+nav.side .num{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-display);font-size:.85rem;background:var(--blue-soft);color:var(--blue)}
+nav.side .done .num{background:var(--good);color:#fff}
+nav.side .count{margin-left:auto;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+main{display:flex;flex-direction:column;gap:28px;min-width:0}
+.intro{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--blue);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+section.mission{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:16px;scroll-margin-top:90px}
+.mhead{display:flex;gap:14px;align-items:flex-start}
+.mhead .badge{flex:none;width:44px;height:44px;border-radius:12px;background:var(--blue);color:#fff;display:grid;place-items:center;font-family:var(--font-display);font-size:1.2rem}
+.mhead p{color:var(--muted);max-width:62ch;margin-top:4px}
+.tip{background:var(--warn-soft);color:var(--ink);border-radius:10px;padding:10px 14px;font-size:.95rem;border-left:4px solid var(--warn)}
+.tip strong{color:var(--warn)}
+.cb{background:var(--blue-soft);border-radius:10px;padding:10px 14px;font-size:.95rem;border-left:4px solid var(--blue)}
+.cb strong:first-child{color:var(--blue)}
+
+ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.task{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:background .2s,border-color .2s}
+.task.is-done{background:var(--good-soft);border-color:var(--good)}
+.task input[type=checkbox]{width:24px;height:24px;margin:2px 0 0;accent-color:var(--good);cursor:pointer}
+.task label{cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.task .what{font-weight:700}
+.task .how{color:var(--muted);font-size:.95rem}
+.task .auto{font-size:.8rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.04em}
+.task.is-done .auto{color:var(--good)}
+
+.practice{border:2px dashed var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.practice input[type=text],.practice textarea{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:8px 10px}
+.practice textarea{min-height:70px;resize:vertical}
+.code{font-family:ui-monospace,Consolas,monospace;font-size:1.1rem;background:var(--blue-soft);padding:6px 10px;border-radius:8px;user-select:all;display:inline-block}
+.paste{min-height:110px;display:grid;place-items:center;text-align:center;color:var(--muted);background:var(--paper);border-radius:8px;border:1px solid var(--line);padding:10px}
+.paste img{max-width:100%;max-height:240px;border-radius:6px}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:10px;padding:8px 16px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--blue);border:2px solid var(--blue)}
+.btn:hover{filter:brightness(1.08)}
+.status{font-size:.9rem;font-weight:700}
+.status.ok{color:var(--good)}
+
+/* Taskbar map */
+.tbwrap{overflow-x:auto;border-radius:12px;border:1px solid var(--line);background:var(--paper)}
+.tbwrap svg{display:block;min-width:640px;width:100%;height:auto}
+.hot{cursor:pointer}
+.hot circle{fill:var(--blue)}
+.hot text{fill:#fff;font-family:var(--font-display);font-size:13px}
+.hot.seen circle{fill:var(--good)}
+.tbinfo{background:var(--blue-soft);border-radius:10px;padding:12px 14px;min-height:72px}
+.tbinfo h3{margin-bottom:4px}
+
+/* Quiz */
+.quiz{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.quiz .q{font-weight:700}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 14px;cursor:pointer}
+.opts button:hover{border-color:var(--blue)}
+.opts button.right{background:var(--good);color:#fff;border-color:var(--good)}
+.opts button.wrong{background:transparent;color:var(--bad);border-color:var(--bad);text-decoration:line-through}
+.feedback{font-size:.95rem}
+
+/* Shortcut table */
+.sc{width:100%;border-collapse:collapse;font-size:.95rem}
+.sc td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.sc td:first-child{white-space:nowrap;width:1%}
+
+/* Finish card */
+.finish{background:linear-gradient(135deg,var(--blue),#123f8f);color:#fff;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px;scroll-margin-top:90px}
+.finish input{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:8px;padding:8px 10px;width:min(100%,320px)}
+.finish input::placeholder{color:rgba(255,255,255,.7)}
+.finish .big{font-family:var(--font-display);font-size:2.4rem;font-variant-numeric:tabular-nums}
+.finish .row{display:flex;flex-wrap:wrap;gap:24px}
+.finish .row div{display:flex;flex-direction:column}
+.finish small{opacity:.8}
+.finish .btn.ghost{color:#fff;border-color:#fff}
+.stamp{display:inline-block;background:#fff;color:#123f8f;font-family:var(--font-display);font-weight:700;padding:6px 14px;border-radius:999px}
+
+.modal{position:fixed;inset:0;background:rgba(10,15,30,.55);display:none;place-items:center;z-index:50;padding:16px}
+.modal.open{display:grid}
+.modal .box{background:var(--card);border-radius:14px;padding:20px;max-width:380px;display:flex;flex-direction:column;gap:14px}
+.modal .acts{display:flex;gap:10px;justify-content:flex-end}
+
+@media (max-width:820px){
+  .wrap{grid-template-columns:1fr}
+  nav.side{position:static;flex-direction:row;flex-wrap:wrap}
+  nav.side button{flex:1 1 140px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<style>
+/* Extra pieces for the transfer tutorial: practice file cards, drop boxes, route diagram. */
+.ficon{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 10px;text-align:center}
+.ficon b{font-family:var(--font-display);font-size:1.1rem;color:#fff;background:var(--fc);border-radius:8px;padding:14px 10px;min-width:64px}
+.ficon span{font-weight:700;font-size:.9rem;word-break:break-all}
+.ficon small{color:var(--muted);font-size:.8rem}
+.fchip{display:inline-block;font-family:var(--font-display);font-size:.8rem;color:#fff;background:var(--blue);border-radius:6px;padding:8px 10px}
+.photos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.photo{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper);display:flex;flex-direction:column}
+.photo canvas{width:100%;height:auto;display:block}
+.photo .btn{border-radius:0;width:100%}
+.photo .btn.got{background:var(--good)}
+.drop{border:2px dashed var(--blue);border-radius:12px;padding:18px;text-align:center;color:var(--muted);background:var(--paper);display:flex;flex-direction:column;gap:10px;align-items:center}
+.drop.over{background:var(--blue-soft)}
+.drop .thumbs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.drop .thumbs figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.8rem;color:var(--ink)}
+.drop .thumbs img{width:90px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.drop input[type=file]{font-size:.9rem}
+.status.bad{color:var(--bad)}
+.route{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-weight:700}
+.route span{background:var(--blue-soft);border-radius:999px;padding:4px 12px}
+.route span.c{background:var(--warn-soft)}
+.route i{font-style:normal;color:var(--muted)}
+.next{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><h1>File Transfer: Google Drive ⇄ H:</h1><small>Dover Bay Secondary</small></div>
+  <div class="prog" aria-label="Overall progress">
+    <div class="bar"><span id="barFill"></span></div>
+    <b id="progText">0 / 0 tasks</b>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="side" id="sideNav" aria-label="Missions"></nav>
+  <main id="main">
+    <div class="intro">
+      <h2>How this works</h2>
+      <p>You will move files both ways between <strong>Google Drive</strong> (online) and your <strong>H: drive</strong> (your school storage). Keep this page on the right side of the screen and do each task on your real computer. Tick each box when you finish. Some boxes tick themselves when this page sees the right files.</p>
+      <div class="route" aria-label="The two routes">
+        <span>H: drive</span><i>— upload →</i><span>Google Drive</span>
+      </div>
+      <div class="route" aria-label="Downloading route">
+        <span>Google Drive</span><i>— download →</i><span class="c">Downloads (C:)</span><i>— move →</i><span>H: drive</span>
+      </div>
+      <p>Anything you download lands in <strong>Downloads on the C: drive</strong> first, and the C: drive gets erased. A download isn't safe until you move it to H:.</p>
+    </div>
+    <div id="missions"></div>
+
+    <section class="finish" id="finish" aria-labelledby="finTitle">
+      <h2 id="finTitle">Mission report</h2>
+      <p>Type your name, then show this card to your teacher.</p>
+      <label for="stuName">Your name</label>
+      <input id="stuName" type="text" placeholder="First and last name" autocomplete="off">
+      <div class="row">
+        <div><span class="big" id="finCourse" style="font-size:1.4rem">—</span><small>course</small></div>
+        <div><span class="big" id="finTasks">0</span><small>tasks done</small></div>
+        <div><span class="big" id="finQuiz">0</span><small>quiz questions right first try</small></div>
+      </div>
+      <p id="finMsg"></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn ghost" id="resetBtn" type="button">Start over</button>
+      </div>
+    </section>
+    <div class="next">New to Windows computers? Try <a href="windows-11-missions.html">Windows 11 Missions</a> first. It covers File Explorer, your H: drive and keyboard shortcuts.</div>
+  </main>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="box">
+    <h3 id="modalTitle">Start over?</h3>
+    <p>This clears every tick and quiz answer on this computer.</p>
+    <div class="acts">
+      <button class="btn ghost" id="cancelReset" type="button">Keep my progress</button>
+      <button class="btn" id="confirmReset" type="button">Clear everything</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const K = '<kbd>⊞ Win</kbd>';
+const k = s => s.split('+').map(x => x.trim()==='Win' ? K : `<kbd>${x.trim()}</kbd>`).join(' + ');
+const C = '<strong class="course">your course</strong>';
+
+const MISSIONS = [
+ {id:'setup', title:'Get set up', blurb:'You need three things on screen: this page, Google Drive, and File Explorer.',
+  cb:'On a Chromebook, Google Drive shows up inside the Files app. On a school Windows computer it does not, so you use Drive in the web browser and move files by uploading and downloading.',
+  tasks:[
+   {id:'course', what:'Type the name of your course', how:'Write it the way your teacher does, for example <strong>Makerspace 9</strong>. You should already have a folder with this name on your H: drive.', auto:'course', practice:'course'},
+   {id:'snap', what:'Snap this page to the right half', how:`Click this page and press ${k('Win+→')}.`},
+   {id:'drive', what:'Open Google Drive in a new window', how:`Press ${k('Ctrl+N')} for a new browser window, go to <strong>drive.google.com</strong>, and sign in with your <strong>school</strong> Google account. Press ${k('Win+←')} to snap it to the left half.`},
+   {id:'checkacct', what:'Check you are in your school account', how:'Click your profile picture in the top right corner of Drive. The email address should be your school one, not a personal account.'},
+   {id:'explorer', what:'Open your course folder on H:', how:`Press ${k('Win+E')}, open your H: drive (the one with your name), then open ${C}. Inside it, make a new folder called <strong>Transfer practice</strong> (${k('Ctrl+Shift+N')}, type the name, <kbd>Enter</kbd>).`},
+   {id:'ext', what:'Make sure you can see file extensions', how:'In File Explorer, click <strong>View → Show</strong> and make sure <strong>File name extensions</strong> is ticked. You need to see the ending of each file name (.stl, .svg, .txt) in this tutorial.'}
+  ],
+  tip:'<strong>Switching between windows:</strong> Hold <kbd>Alt</kbd> and tap <kbd>Tab</kbd> to jump between Google Drive and File Explorer.',
+  quiz:{q:'Why check which Google account you are signed in to?', opts:['So your files go to your school Drive','It makes uploads faster','It is not important'], a:0, why:'If you are signed in to a personal account, your files end up in the wrong Drive.'}
+ },
+ {id:'practice', title:'Get practice files', blurb:'Download three practice files, one of each kind you will use in Makerspace, and put them on your H: drive.',
+  tasks:[
+   {id:'getfiles', what:'Download all three practice files', how:'Click each <strong>Download</strong> button below. Your browser saves them to the <strong>Downloads</strong> folder on the C: drive.', auto:'files', practice:'files'},
+   {id:'findthem', what:'Find them in Downloads', how:`Press ${k('Ctrl+J')} to see your browser's downloads and click <strong>Show in folder</strong>. Or click <strong>Downloads</strong> in File Explorer's left pane.`},
+   {id:'movethem', what:'Move them to Transfer practice on H:', how:`Click the first file, then hold <kbd>Ctrl</kbd> and click the other two so all three are selected. Press ${k('Ctrl+X')}, open H: → ${C} → <strong>Transfer practice</strong>, and press ${k('Ctrl+V')}.`},
+   {id:'checkthem', what:'Check they arrived', how:'All three files should be in Transfer practice and gone from Downloads. Look at the endings: <strong>.txt</strong>, <strong>.svg</strong> and <strong>.stl</strong>.'}
+  ],
+  quiz:{q:'You just downloaded an STL file for 3D printing. Where is it?', opts:['On your H: drive','In Downloads on the C: drive','In Google Drive'], a:1, why:'Downloads always land on C: first. Move them to H: to keep them.'}
+ },
+ {id:'upload', title:'H: drive → Google Drive', blurb:'Uploading copies files from your computer into Google Drive. The originals stay on H:.',
+  tasks:[
+   {id:'drivefolder', what:'Make a course folder in Google Drive', how:`In Drive, click <strong>+ New</strong> → <strong>New folder</strong>, name it ${C}, and click <strong>Create</strong>. Double-click the folder to open it.`},
+   {id:'fileupload', what:'Upload with the New button', how:`Click <strong>+ New</strong> → <strong>File upload</strong>. In the window that opens, click your H: drive in the left pane, then open ${C} → <strong>Transfer practice</strong>.`},
+   {id:'selectall', what:'Select all three files and upload', how:`Press ${k('Ctrl+A')} to select every file in the folder, then click <strong>Open</strong>.`},
+   {id:'wait', what:'Wait for the upload to finish', how:'A box in the bottom right of Drive shows the progress. Wait until it says <strong>3 uploads complete</strong> before you close anything.'},
+   {id:'drag', what:'Upload a whole folder by dragging', how:`In File Explorer, go up one level so you can see the <strong>Transfer practice</strong> folder. Drag that folder onto your ${C} folder in the Google Drive window and let go. Drive uploads the folder and everything in it.`},
+   {id:'checkup', what:'Check it worked', how:'In Drive you should see the three files and a <strong>Transfer practice</strong> folder. Double-click the STL file: Drive says it cannot preview it. That is normal. The file is still safe in Drive.'}
+  ],
+  tip:'<strong>Don\'t close the browser early.</strong> If you close Drive before the upload box says complete, the upload stops and the files never arrive.',
+  quiz:{q:'Google Drive says "No preview available" for your STL file. What does that mean?', opts:['The file is broken','Drive just cannot show 3D models; the file is fine','You must upload it again'], a:1, why:'Drive stores any kind of file, but it can only preview some. Open STL files in a slicer or Tinkercad.'}
+ },
+ {id:'downone', title:'Google Drive → H: (one file)', blurb:'Downloading copies a file from Drive to your computer. It lands in Downloads first, then you move it to H:.',
+  tasks:[
+   {id:'fromdrive', what:'Make a "From Drive" folder on H:', how:`In File Explorer, open H: → ${C} and make a new folder called <strong>From Drive</strong>.`},
+   {id:'dl1', what:'Download one file from Drive', how:'In Drive, right-click <strong>practice-keyfob.stl</strong> and choose <strong>Download</strong>.'},
+   {id:'show1', what:'Find it in Downloads', how:`Press ${k('Ctrl+J')} and click <strong>Show in folder</strong>. File Explorer opens Downloads with the file selected.`},
+   {id:'move1', what:'Move it into From Drive', how:`Press ${k('Ctrl+X')}, go to H: → ${C} → <strong>From Drive</strong>, and press ${k('Ctrl+V')}.`},
+   {id:'prove1', what:'Prove it is on H:', how:`Click <strong>Choose files</strong> below. In the window that opens, go to H: → ${C} → <strong>From Drive</strong> and pick the file. Or drag it from File Explorer onto the box.`, auto:'one', practice:'drop1'}
+  ],
+  quiz:{q:'After you click Download in Google Drive, where does the file go first?', opts:['Straight to H:','Downloads on the C: drive','The Recycle Bin'], a:1, why:'Every download goes to Downloads on C:. You have to move it to H: yourself.'}
+ },
+ {id:'downmany', title:'Google Drive → H: (many files)', blurb:'When you download more than one file, or a whole folder, Google Drive packs everything into one ZIP file. You have to unpack (extract) it.',
+  tasks:[
+   {id:'selmany', what:'Practise selecting several files in Drive', how:'In your Drive course folder, click the first file, then hold <kbd>Ctrl</kbd> and click the others. Or hold <kbd>Shift</kbd> and click the last one to select everything in between. Click an empty spot to clear the selection.'},
+   {id:'dlmany', what:'Download the whole Transfer practice folder', how:'In your Drive course folder, right-click the <strong>Transfer practice</strong> folder and choose <strong>Download</strong>. A box in the bottom right says <strong>Preparing download</strong> while Drive zips it. Wait for it. (Downloading several selected files works the same way and also gives you a ZIP.)'},
+   {id:'findzip', what:'Find the ZIP in Downloads', how:'Open Downloads. Look for a file whose name starts with <strong>Transfer practice</strong> or <strong>drive-download</strong> and ends in <strong>.zip</strong>. The icon looks like a folder with a zipper.'},
+   {id:'extract', what:'Extract it to your H: drive', how:`Right-click the ZIP and choose <strong>Extract All…</strong>. Click <strong>Browse</strong>, go to H: → ${C} → <strong>From Drive</strong>, and click <strong>Select Folder</strong>. Then click <strong>Extract</strong>. A <strong>Transfer practice</strong> folder appears inside From Drive.`},
+   {id:'prove2', what:'Prove the files are unpacked on H:', how:`Click <strong>Choose files</strong> below, go to H: → ${C} → <strong>From Drive</strong> → <strong>Transfer practice</strong>, press ${k('Ctrl+A')} and click <strong>Open</strong>. Or drag the files onto the box.`, auto:'many', practice:'drop2'},
+   {id:'delzip', what:'Delete the ZIP from Downloads', how:'You do not need the ZIP any more. Select it in Downloads and press <kbd>Delete</kbd>.'}
+  ],
+  cb:'Chromebooks open ZIP files like folders. Windows can look inside a ZIP too, but programs like slicers and Cricut Design Space cannot open files that are still inside one, so always use <strong>Extract All</strong>.',
+  quiz:{q:'You downloaded a whole Drive folder and got a .zip file. What do you do next?', opts:['Rename it to .stl','Right-click it and choose Extract All','Upload it back to Drive'], a:1, why:'Extract All unpacks the ZIP so you get the real files. Send them to H:.'}
+ },
+ {id:'gdocs', title:'Google Docs, Sheets and Slides', blurb:'Google Docs, Sheets and Slides only exist inside Google Drive. To get one onto H:, you download a copy in a normal file type such as PDF or Word.',
+  tasks:[
+   {id:'newdoc', what:'Make a quick Google Doc', how:`In your Drive ${C} folder, click <strong>+ New → Google Docs</strong>. Name it <strong>Transfer practice notes</strong> (click "Untitled document" at the top left) and type one sentence.`},
+   {id:'dlpdf', what:'Download it as a PDF', how:'In the Doc, click <strong>File → Download → PDF Document (.pdf)</strong>. The PDF goes to Downloads.'},
+   {id:'movepdf', what:'Move the PDF to H:', how:`Find the PDF in Downloads and move it to H: → ${C} → <strong>From Drive</strong> with ${k('Ctrl+X')} and ${k('Ctrl+V')}.`},
+   {id:'docxway', what:'Know the shortcut from Drive', how:'Back in Drive, right-click a Google Doc and choose <strong>Download</strong>. Drive turns it into a Word file (.docx) for you. Sheets become Excel files (.xlsx) and Slides become PowerPoint files (.pptx).'}
+  ],
+  cb:'On a Chromebook you may never have needed a "real" file for a Google Doc. On Windows, programs outside the browser cannot open a Google Doc until you download it as PDF, Word or another file type.',
+  quiz:{q:'Where is a Google Doc stored?', opts:['On your H: drive automatically','Only in Google Drive, until you download a copy','In Downloads'], a:1, why:'Google Docs live in Drive. Download a PDF or Word copy to keep one on H:.'}
+ },
+ {id:'finish', title:'Finish safely', blurb:'Shared school computers need two last steps.',
+  tasks:[
+   {id:'cleandl', what:'Check that Downloads is empty of your work', how:'Open Downloads. Anything of yours still there will be erased. Move it to H: or delete it.'},
+   {id:'signout', what:'Sign out of Google', how:'In Drive, click your profile picture (top right) and choose <strong>Sign out</strong>. If you skip this, the next person on this computer could open your Drive.'},
+   {id:'trouble', what:'Read the troubleshooting list', how:'Read the tips below so you know what to do if something goes wrong.'}
+  ],
+  tip:'<strong>If something goes wrong:</strong><br>• <strong>A file opens in the wrong program, or not at all:</strong> check its extension. STL and 3MF files open in a slicer, SVG files in Cricut Design Space or a vector program.<br>• <strong>Download option is missing:</strong> the owner of that file turned downloading off. Ask them for a copy.<br>• <strong>"Upload options" box appears:</strong> a file with that name is already there. Choose <strong>Keep all items separate</strong> unless you want to replace the old one.<br>• <strong>Windows asks to "Replace or Skip Files":</strong> a file with that name is already in the folder. Choose Replace only if the new one is the version you want.<br>• <strong>Several ZIP files appear:</strong> very big downloads are split into parts. Extract each one into the same folder.',
+  quiz:{q:'Why sign out of Google at the end of class?', opts:['To save battery','So the next person cannot open your Drive','So your files upload faster'], a:1, why:'School computers are shared. Signing out keeps your account private.'}
+ }
+];
+
+// ---------- state ----------
+const KEY='dbss-drive-file-transfer-v1';
+let S = {done:{}, quiz:{}, name:'', auto:{}, course:'', got:{}};
+try{ const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(S, JSON.parse(raw)); }catch(e){}
+// borrow the course name from the other tutorials if the student did one first
+try{ if(!S.course){ for(const key of ['dbss-win11-missions-v1','dbss-drive-transfer-v1']){ const w=JSON.parse(localStorage.getItem(key)||'{}'); if(w.course){ S.course=w.course; break; } } } }catch(e){}
+const save=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} };
+const allTasks = MISSIONS.flatMap(m=>m.tasks);
+
+// ---------- practice files (built in the browser) ----------
+function stlBox(w,d,h){
+  const v=[[0,0,0],[w,0,0],[w,d,0],[0,d,0],[0,0,h],[w,0,h],[w,d,h],[0,d,h]];
+  const f=[[0,2,1,0,0,-1],[0,3,2,0,0,-1],[4,5,6,0,0,1],[4,6,7,0,0,1],[0,1,5,0,-1,0],[0,5,4,0,-1,0],
+           [1,2,6,1,0,0],[1,6,5,1,0,0],[2,3,7,0,1,0],[2,7,6,0,1,0],[3,0,4,-1,0,0],[3,4,7,-1,0,0]];
+  return 'solid practice_keyfob\n'+f.map(t=>`  facet normal ${t[3]} ${t[4]} ${t[5]}\n    outer loop\n${[0,1,2].map(i=>`      vertex ${v[t[i]].join(' ')}`).join('\n')}\n    endloop\n  endfacet`).join('\n')+'\nendsolid practice_keyfob\n';
+}
+const STAR = (()=>{ const p=[]; for(let i=0;i<10;i++){ const r=i%2?22:50, a=Math.PI/5*i-Math.PI/2; p.push((60+r*Math.cos(a)).toFixed(1)+','+(60+r*Math.sin(a)).toFixed(1)); } return p.join(' '); })();
+const FILES = [
+ {n:1, name:'practice-notes.txt', kind:'Text file', use:'Notes and plans', type:'text/plain', icon:'TXT', color:'#5a6680',
+  body:()=>'Transfer practice notes\r\n\r\nIf you can read this on your H: drive, the transfer worked.\r\n'},
+ {n:2, name:'practice-sticker.svg', kind:'SVG design', use:'Cricut and laser cutting', type:'image/svg+xml', icon:'SVG', color:'#c2410c',
+  body:()=>`<svg xmlns="http://www.w3.org/2000/svg" width="120mm" height="120mm" viewBox="0 0 120 120"><polygon points="${STAR}" fill="#1d5fd1"/></svg>`},
+ {n:3, name:'practice-keyfob.stl', kind:'STL model', use:'3D printing', type:'model/stl', icon:'STL', color:'#1f8a4c',
+  body:()=>stlBox(40,25,4)}
+];
+
+// ---------- render ----------
+function practiceHTML(type){
+  if(type==='course') return `<div class="practice"><label for="courseIn">My course is called</label><input type="text" id="courseIn" autocomplete="off" placeholder="e.g. Makerspace 9"></div>`;
+  if(type==='files') return `<div class="practice"><div class="photos">${FILES.map(f=>`<div class="photo"><div class="ficon" style="--fc:${f.color}"><b>${f.icon}</b><span>${f.name}</span><small>${f.kind} · ${f.use}</small></div><button type="button" class="btn ${S.got[f.n]?'got':''}" data-dl="${f.n}">${S.got[f.n]?'Downloaded ✓':'Download'}</button></div>`).join('')}</div><span class="status">If nothing downloads, open this page from the Google Classroom link.</span></div>`;
+  if(type==='drop1'||type==='drop2') return `<div class="drop" data-drop="${type}"><span>Drop ${type==='drop1'?'the file':'the files'} here, or</span><input type="file" ${type==='drop2'?'multiple':''} aria-label="Choose files"><div class="thumbs"></div><span class="status" aria-live="polite"></span></div>`;
+  return '';
+}
+
+function render(){
+  const host=document.getElementById('missions');
+  host.innerHTML = MISSIONS.map((m,i)=>`
+  <section class="mission" id="m-${m.id}" aria-labelledby="h-${m.id}">
+    <div class="mhead"><div class="badge">${i+1}</div><div><h2 id="h-${m.id}">${m.title}</h2><p>${m.blurb}</p></div></div>
+    ${m.cb?`<div class="cb"><strong>Coming from a Chromebook?</strong> ${m.cb}</div>`:''}
+    <ol class="tasks">
+      ${m.tasks.map(t=>`<li class="task ${S.done[t.id]?'is-done':''}" id="t-${t.id}">
+        <input type="checkbox" id="c-${t.id}" ${S.done[t.id]?'checked':''} data-task="${t.id}">
+        <label for="c-${t.id}">
+          ${t.auto?`<span class="auto">${S.auto[t.id]?'Detected ✓':'Checks itself'}</span>`:''}
+          <span class="what">${t.what}</span><span class="how">${t.how}</span>
+        </label>
+        ${t.practice?`<div style="grid-column:1/-1">${practiceHTML(t.practice)}</div>`:''}
+      </li>`).join('')}
+    </ol>
+    ${m.tip?`<div class="tip">${m.tip}</div>`:''}
+    <div class="quiz" data-m="${m.id}">
+      <span class="q">Check yourself: ${m.quiz.q}</span>
+      <div class="opts">${m.quiz.opts.map((o,j)=>`<button type="button" data-j="${j}">${o}</button>`).join('')}</div>
+      <span class="feedback" aria-live="polite"></span>
+    </div>
+  </section>`).join('');
+  MISSIONS.forEach(m=>{
+    const qs=S.quiz[m.id]; if(!qs) return;
+    const box=host.querySelector(`.quiz[data-m="${m.id}"]`);
+    (qs.tried||[]).forEach(j=>box.querySelector(`[data-j="${j}"]`).classList.add(j===m.quiz.a?'right':'wrong'));
+    if(qs.solved) box.querySelector('.feedback').textContent='✓ '+m.quiz.why;
+  });
+  wire(); update();
+}
+
+function navRender(){
+  document.getElementById('sideNav').innerHTML = MISSIONS.map((m,i)=>{
+    const d=m.tasks.filter(t=>S.done[t.id]).length;
+    return `<button type="button" data-go="m-${m.id}" class="${d===m.tasks.length?'done':''}">
+      <span class="num">${d===m.tasks.length?'✓':i+1}</span><span>${m.title}</span><span class="count">${d}/${m.tasks.length}</span></button>`;
+  }).join('') + `<button type="button" data-go="finish"><span class="num">★</span><span>Mission report</span></button>`;
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>document.getElementById(b.dataset.go).scrollIntoView({behavior:'smooth',block:'start'}));
+}
+
+function update(){
+  const done=allTasks.filter(t=>S.done[t.id]).length;
+  document.getElementById('barFill').style.width=(100*done/allTasks.length)+'%';
+  document.getElementById('progText').textContent=`${done} / ${allTasks.length} tasks`;
+  const quizRight=MISSIONS.filter(m=>S.quiz[m.id]?.first).length;
+  document.getElementById('finTasks').textContent=`${done}/${allTasks.length}`;
+  document.getElementById('finQuiz').textContent=`${quizRight}/${MISSIONS.length}`;
+  const name=(S.name||'').trim();
+  document.getElementById('finMsg').innerHTML = done===allTasks.length
+    ? `<span class="stamp">File Transfer Pro${name?': '+name.replace(/[<>&]/g,''):''}</span>`
+    : `${allTasks.length-done} task${allTasks.length-done===1?'':'s'} left. Use the list on the left to find unfinished missions.`;
+  paintCourse(); navRender();
+}
+
+function paintCourse(){
+  const v=(S.course||'').trim();
+  document.querySelectorAll('.course').forEach(el=>el.textContent = v || 'your course name');
+  document.getElementById('finCourse').textContent = v || '—';
+}
+
+function setDone(id, val, auto){
+  S.done[id]=val; if(auto) S.auto[id]=true; save();
+  const li=document.getElementById('t-'+id); if(!li) return;
+  li.classList.toggle('is-done', val);
+  li.querySelector('input[type=checkbox]').checked=val;
+  const a=li.querySelector('.auto'); if(a && auto) a.textContent='Detected ✓';
+  update();
+}
+
+function checkFiles(type, files, box){
+  const st=box.querySelector('.status'), th=box.querySelector('.thumbs');
+  const list=[...files];
+  th.innerHTML=list.map(f=>`<figure><span class="fchip">${(f.name.split('.').pop()||'?').toUpperCase().slice(0,4).replace(/[<>&]/g,'')}</span><figcaption>${f.name.replace(/[<>&]/g,'')}</figcaption></figure>`).join('');
+  st.className='status';
+  const zips=list.filter(f=>/\.zip$/i.test(f.name));
+  if(zips.length){ st.textContent='That is the ZIP file. Right-click it in Downloads, choose Extract All, and send the files to your H: drive.'; st.classList.add('bad'); return; }
+  const practice=list.filter(f=>/^practice-(notes|sticker|keyfob)( \(\d+\))?\.(txt|svg|stl)$/i.test(f.name));
+  if(type==='drop1'){
+    if(practice.length){ st.textContent='✓ Found it. That file made it from Google Drive to your H: drive.'; st.classList.add('ok'); setDone('prove1',true,true); }
+    else { st.textContent='That is not one of the practice files. Look for practice-keyfob.stl.'; }
+  } else {
+    if(practice.length>=2){ st.textContent=`✓ ${practice.length} practice files unpacked. Nice work.`; st.classList.add('ok'); setDone('prove2',true,true); }
+    else { st.textContent='Pick all the files you extracted (press Ctrl + A in the Choose files window).'; }
+  }
+}
+
+function wire(){
+  document.querySelectorAll('input[data-task]').forEach(c=>c.onchange=()=>setDone(c.dataset.task,c.checked));
+  document.querySelectorAll('.quiz').forEach(box=>{
+    const m=MISSIONS.find(x=>x.id===box.dataset.m);
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      const st=S.quiz[m.id]||(S.quiz[m.id]={tried:[]});
+      if(st.solved) return;
+      const j=+b.dataset.j; if(!st.tried.includes(j)) st.tried.push(j);
+      const fb=box.querySelector('.feedback');
+      if(j===m.quiz.a){ b.classList.add('right'); st.solved=true; st.first=st.tried.length===1; fb.textContent='✓ '+m.quiz.why; }
+      else { b.classList.add('wrong'); fb.textContent='Not quite. Try another answer.'; }
+      save(); update();
+    });
+  });
+  const co=document.getElementById('courseIn');
+  if(co){ co.value=S.course||''; if(co.value.trim().length>1 && !S.done.course) setDone('course',true,true);
+    co.addEventListener('input',()=>{S.course=co.value; save(); paintCourse(); setDone('course', co.value.trim().length>1, true);}); }
+  document.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>{
+    const f=FILES[+b.dataset.dl-1];
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([f.body()],{type:f.type})); a.download=f.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    S.got[f.n]=true; save(); b.textContent='Downloaded ✓'; b.classList.add('got');
+    if(FILES.every(x=>S.got[x.n])) setDone('getfiles',true,true);
+  });
+  document.querySelectorAll('[data-drop]').forEach(box=>{
+    const type=box.dataset.drop;
+    box.querySelector('input[type=file]').addEventListener('change',e=>checkFiles(type,e.target.files,box));
+    box.addEventListener('dragover',e=>{e.preventDefault();box.classList.add('over');});
+    box.addEventListener('dragleave',()=>box.classList.remove('over'));
+    box.addEventListener('drop',e=>{e.preventDefault();box.classList.remove('over');checkFiles(type,e.dataTransfer.files,box);});
+  });
+}
+
+// name + reset
+const nameIn=document.getElementById('stuName');
+nameIn.value=S.name||'';
+nameIn.addEventListener('input',()=>{S.name=nameIn.value;save();update();});
+const modal=document.getElementById('modal');
+document.getElementById('resetBtn').onclick=()=>{modal.classList.add('open');document.getElementById('cancelReset').focus();};
+document.getElementById('cancelReset').onclick=()=>modal.classList.remove('open');
+document.getElementById('confirmReset').onclick=()=>{
+  const keepCourse=S.course;
+  S={done:{},quiz:{},name:'',auto:{},course:keepCourse,got:{}};save();nameIn.value='';modal.classList.remove('open');render();window.scrollTo(0,0);
+};
+document.addEventListener('keydown',e=>{if(e.key==='Escape') modal.classList.remove('open');});
+// stop the browser opening files dropped outside a drop box
+window.addEventListener('dragover',e=>e.preventDefault());
+window.addEventListener('drop',e=>e.preventDefault());
+
+render();
+</script>
+</body>
+</html>
