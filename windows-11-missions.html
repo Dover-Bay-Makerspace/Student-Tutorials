@@ -79,6 +79,8 @@ section.mission{background:var(--card);border:1px solid var(--line);border-radiu
 .mhead p{color:var(--muted);max-width:62ch;margin-top:4px}
 .tip{background:var(--warn-soft);color:var(--ink);border-radius:10px;padding:10px 14px;font-size:.95rem;border-left:4px solid var(--warn)}
 .tip strong{color:var(--warn)}
+.cb{background:var(--blue-soft);border-radius:10px;padding:10px 14px;font-size:.95rem;border-left:4px solid var(--blue)}
+.cb strong:first-child{color:var(--blue)}
 
 ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
 .task{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:background .2s,border-color .2s}
@@ -153,7 +155,7 @@ ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;g
 </head>
 <body>
 <header class="top">
-  <div class="brand"><h1>Windows 11 Missions</h1><small>Dover Bay Makerspace · Grade 8</small></div>
+  <div class="brand"><h1>Windows 11 Missions</h1><small>Dover Bay Secondary</small></div>
   <div class="prog" aria-label="Overall progress">
     <div class="bar"><span id="barFill"></span></div>
     <b id="progText">0 / 0 tasks</b>
@@ -167,6 +169,7 @@ ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;g
       <h2>How this works</h2>
       <p>Keep this page open on one side of your screen and do every task on your <strong>real Windows desktop</strong>. Tick the box when you finish a task. Some tasks check themselves: when this page notices you did it, the box ticks on its own.</p>
       <p>Keys you press look like this: <kbd>Ctrl</kbd> + <kbd>C</kbd>. The <kbd>⊞ Win</kbd> key is the Windows logo key, bottom left of your keyboard. Your progress is saved in this browser, so you can stop and come back.</p>
+      <p>Used to a Chromebook? Look for the blue <strong>Coming from a Chromebook?</strong> notes. They compare each Windows skill to what you already know.</p>
     </div>
     <div id="missions"></div>
 
@@ -176,6 +179,7 @@ ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;g
       <label for="stuName" class="sr">Your name</label>
       <input id="stuName" type="text" placeholder="First and last name" autocomplete="off">
       <div class="row">
+        <div><span class="big" id="finCourse" style="font-size:1.4rem">—</span><small>course</small></div>
         <div><span class="big" id="finTasks">0</span><small>tasks done</small></div>
         <div><span class="big" id="finQuiz">0</span><small>quiz questions right first try</small></div>
         <div><span class="big" id="finMissions">0</span><small>missions complete</small></div>
@@ -204,14 +208,15 @@ const K = '<kbd>⊞ Win</kbd>';
 const k = s => s.split('+').map(x => x.trim()==='Win' ? K : `<kbd>${x.trim()}</kbd>`).join(' + ');
 
 const MISSIONS = [
- {id:'setup', title:'Get set up', blurb:'Put this page on one half of the screen so your other apps fit beside it.',
+ {id:'setup', title:'Get set up', blurb:'Put this page on one half of the screen so your other apps fit beside it.', cb:'On a Chromebook you snap with <kbd>Alt</kbd> + <kbd>[</kbd> and <kbd>Alt</kbd> + <kbd>]</kbd>. On Windows you use the Windows key and the arrow keys.',
   tasks:[
    {id:'snap', what:`Snap this browser window to the right half`, how:`Click anywhere on this page, then press ${k('Win+→')}. If Windows shows other windows on the left, click one or press <kbd>Esc</kbd>.`, auto:'snap'},
    {id:'leftside', what:'Notice the empty left half', how:'That side is your workspace. Every app you open in these missions goes there.'}
+   ,{id:'course', what:'Type the name of your course', how:'Write it the way your teacher does, for example <strong>Makerspace 9</strong> or <strong>Photography 11</strong>. Later you will make a folder with this exact name.', auto:'course', practice:'course'}
   ],
   quiz:{q:'Which keys snap a window to the left half of the screen?', opts:['Ctrl + ←','Win + ←','Alt + ←'], a:1, why:'Win plus an arrow key snaps the window. Win + ↑ maximizes it.'}
  },
- {id:'taskbar', title:'The taskbar', blurb:'The strip along the bottom of the screen. Click each numbered dot below to learn what that part does, then find it on your real taskbar.',
+ {id:'taskbar', title:'The taskbar', cb:'The taskbar is like the shelf along the bottom of a Chromebook, and the Start button is like the Launcher.', blurb:'The strip along the bottom of the screen. Click each numbered dot below to learn what that part does, then find it on your real taskbar.',
   map:true,
   tasks:[
    {id:'tbmap', what:'Learn all 7 parts of the taskbar map', how:'Click every numbered dot in the picture above.', auto:'map'},
@@ -221,7 +226,7 @@ const MISSIONS = [
   ],
   quiz:{q:'Where do you find the volume slider?', opts:['In Quick Settings','In File Explorer','In the Start menu'], a:0, why:'Quick Settings (Win + A) holds volume, Wi-Fi and brightness.'}
  },
- {id:'start', title:'Start menu & search', blurb:'The fastest way to open any app is to press Win and start typing its name.',
+ {id:'start', title:'Start menu & search', cb:'The Windows key does the same job as the Launcher (Everything) key on a Chromebook: press it and start typing.', blurb:'The fastest way to open any app is to press Win and start typing its name.',
   tasks:[
    {id:'openstart', what:'Open and close the Start menu', how:`Press ${K} once to open it and again to close it. You can also click the Start button on the taskbar.`},
    {id:'allapps', what:'Find the full list of apps', how:'Open Start. Look for <strong>All</strong> or <strong>All apps</strong>. On some computers it is a button at the top right; on newer ones you scroll down.'},
@@ -231,7 +236,7 @@ const MISSIONS = [
   ],
   quiz:{q:'What is the quickest way to open an app you cannot see?', opts:['Restart the computer','Press Win and type its name','Look through every folder'], a:1, why:'Windows search finds apps, settings and files as you type.'}
  },
- {id:'windows', title:'Controlling windows', blurb:'Every app opens in a window. These three buttons in the top right corner control it: minimize ( — ), maximize ( ☐ ), close ( ✕ ).',
+ {id:'windows', title:'Controlling windows', cb:'<kbd>Alt</kbd> + <kbd>Tab</kbd> works the same as on a Chromebook. Task View (Win + Tab) is like the Overview key.', blurb:'Every app opens in a window. These three buttons in the top right corner control it: minimize ( — ), maximize ( ☐ ), close ( ✕ ).',
   tasks:[
    {id:'minmax', what:'Minimize, maximize and restore Calculator', how:'Open Calculator. Click — to hide it, then click its taskbar icon to bring it back. Click ☐ to fill the screen, then click it again to restore.'},
    {id:'drag', what:'Move and resize a window', how:'Drag the title bar (the top strip) to move it. Drag any edge or corner to change its size.'},
@@ -244,7 +249,7 @@ const MISSIONS = [
   tip:'<strong>Heads up:</strong> Minimize hides a window but keeps it running. Close (✕) actually quits the app.',
   quiz:{q:'You minimized an app. Where did it go?', opts:['It was deleted','It is still running on the taskbar','It moved to the Recycle Bin'], a:1, why:'Minimized apps keep running. Click the taskbar icon to bring them back.'}
  },
- {id:'files', title:'File Explorer', blurb:'File Explorer is where your files and folders live. You will use it in every class that saves work.',
+ {id:'files', title:'File Explorer', cb:'File Explorer is like the Files app on a Chromebook. Your H: drive does the job Google Drive does on a Chromebook: it keeps your work safe from one class to the next.', blurb:'File Explorer is where your files and folders live. You will use it in every class that saves work.',
   tasks:[
    {id:'openfe', what:'Open File Explorer', how:`Press ${k('Win+E')} or click the yellow folder on the taskbar.`},
    {id:'tour', what:'Find Documents, Downloads and This PC', how:'Look down the left side (the navigation pane). Click each one and look at what is inside.'},
@@ -252,7 +257,7 @@ const MISSIONS = [
    {id:'pinh', what:'Pin H: so it is always one click away', how:'Right-click your H: drive and choose <strong>Pin to Quick access</strong>. Now H: shows near the top of the left pane every time you open File Explorer.'},
    {id:'checkbar', what:'Check the address bar', how:'With H: open, look at the address bar along the top of File Explorer. It should read <strong>This PC › Your Name (H:)</strong>. Whenever you are not sure where you are, look there.'},
    {id:'newfolder', what:'Make a new folder on H:', how:`Open your H: drive. Press ${k('Ctrl+Shift+N')} or click <strong>New → Folder</strong>. A folder called <strong>New folder</strong> appears. Press <kbd>Enter</kbd> to keep that name for now.`},
-   {id:'rename', what:'Rename it to "Makerspace 8"', how:'Click <strong>New folder</strong> once, press <kbd>F2</kbd>, type <strong>Makerspace 8</strong> exactly (capital M, a space, then 8), and press <kbd>Enter</kbd>. This is where all your Makerspace work goes this year.'},
+   {id:'rename', what:'Rename it after your course', how:'Click <strong>New folder</strong> once, press <kbd>F2</kbd>, type <strong class="course">your course</strong> (the course name you entered in Mission 1), and press <kbd>Enter</kbd>. This is where all your work for this course goes.'},
    {id:'ext', what:'Turn on file name extensions', how:'Click <strong>View → Show → File name extensions</strong>. Now you can see endings like <code>.txt</code>, <code>.jpg</code> and <code>.stl</code> that tell you what kind of file it is.'},
    {id:'views', what:'Switch views', how:'Click <strong>View</strong> and try <strong>Large icons</strong> and then <strong>Details</strong>. Details shows the date each file changed.'},
    {id:'search', what:'Search inside a folder', how:'Click the search box at the top right of File Explorer and type part of a file name.'}
@@ -260,30 +265,30 @@ const MISSIONS = [
   tip:'<strong>Important:</strong> Save all your work on your <strong>H: drive</strong>. Work saved on the <strong>C: drive</strong> stays on this one computer and gets erased, so it will be gone next class.',
   quiz:{q:'Which key renames a selected file or folder?', opts:['F2','F5','Delete'], a:0, why:'F2 starts renaming. F5 refreshes the folder.'}
  },
- {id:'save', title:'Saving work', blurb:'Lost work usually means it was saved in the wrong place. Practise saving on purpose.',
+ {id:'save', title:'Saving work', cb:'Google Docs on a Chromebook saves by itself. Most Windows programs do <strong>not</strong>. If you don\'t save, your work is lost when you close the program.', blurb:'Lost work usually means it was saved in the wrong place. Practise saving on purpose.',
   tasks:[
    {id:'notepad', what:'Open Notepad and type a sentence', how:`Press ${K}, type <strong>notepad</strong>, press <kbd>Enter</kbd>. Type one sentence about your favourite thing to make.`},
-   {id:'saveas', what:'Save it into Makerspace 8 on H:', how:`Press ${k('Ctrl+S')}. In the Save window, click <strong>This PC</strong> (or your pinned H: drive) in the left pane, open <strong>H:</strong>, then open <strong>Makerspace 8</strong>. Name the file <strong>my-first-file</strong>.`},
-   {id:'savecheck', what:'Check the address bar before you click Save', how:'Look at the address bar at the top of the Save window. It must read <strong>Your Name (H:) › Makerspace 8</strong>. If it shows Documents, Downloads, Desktop or <strong>C:</strong>, go back to your H: drive first. Then click <strong>Save</strong>.'},
+   {id:'saveas', what:'Save it into your course folder on H:', how:`Press ${k('Ctrl+S')}. In the Save window, click <strong>This PC</strong> (or your pinned H: drive) in the left pane, open <strong>H:</strong>, then open <strong class="course">your course</strong>. Name the file <strong>my-first-file</strong>.`},
+   {id:'savecheck', what:'Check the address bar before you click Save', how:'Look at the address bar at the top of the Save window. It must read <strong>Your Name (H:) › </strong><strong class="course">your course</strong>. If it shows Documents, Downloads, Desktop or <strong>C:</strong>, go back to your H: drive first. Then click <strong>Save</strong>.'},
    {id:'edit', what:'Change the file and save again', how:`Add another sentence and press ${k('Ctrl+S')}. This time it saves straight away because the file already has a name and a home.`},
-   {id:'findit', what:'Find your file again', how:'Close Notepad. Open File Explorer, go to H: → <strong>Makerspace 8</strong>, and double-click the file to open it.'},
+   {id:'findit', what:'Find your file again', how:'Close Notepad. Open File Explorer, go to H: → <strong class="course">your course</strong>, and double-click the file to open it.'},
    {id:'delete', what:'Make a copy, then delete the copy', how:`Click your file, press ${k('Ctrl+C')} then ${k('Ctrl+V')}. A file called <strong>my-first-file - Copy</strong> appears. Select only the copy and press <kbd>Delete</kbd>. Files deleted from H: may skip the Recycle Bin and be gone for good, so always check what you selected first.`}
   ],
   tip:'<strong>Rule of thumb:</strong> Save to H:, save early, save often. Ctrl + S takes one second.',
   quiz:{q:'You want your project to still be there next class. Where do you save it?', opts:['On the C: drive','On your H: drive','On the desktop of this computer'], a:1, why:'Your H: drive keeps your work. Work saved on C: stays on one computer and gets erased.'}
  },
- {id:'downloads', title:'Rescue your downloads', blurb:'Files you download, and files that programs like Layerling save for you, go to the Downloads folder on the C: drive. Anything on C: gets erased, so you have to move those files to your H: drive yourself.',
+ {id:'downloads', title:'Rescue your downloads', cb:'A Chromebook\'s Downloads folder also stays on that one device. The same rule applies here: move what you need to your H: drive.', blurb:'Files you download, and files that programs like Layerling save for you, go to the Downloads folder on the C: drive. Anything on C: gets erased, so you have to move those files to your H: drive yourself.',
   tasks:[
    {id:'dlsave', what:'Put a test file in Downloads', how:`Open Notepad and press ${k('Ctrl+N')} for a fresh tab, so you do not change your earlier file. Type <strong>download test</strong> and press ${k('Ctrl+S')}. Click <strong>Downloads</strong> in the left pane, name the file <strong>download-test</strong> and click Save. This is where Layerling and your web browser put files.`},
    {id:'dlfind', what:'Find it in the Downloads folder', how:'Open File Explorer and click <strong>Downloads</strong> in the left pane. Switch to <strong>View → Details</strong>. The newest files are usually at the top under <strong>Today</strong>. If they are not, click the <strong>Date modified</strong> heading.'},
-   {id:'dlmove', what:'Move it to Makerspace 8 on H:', how:`Click the file and press ${k('Ctrl+X')} (cut). Go to your H: drive, open <strong>Makerspace 8</strong>, and press ${k('Ctrl+V')} (paste). Cut and paste <strong>moves</strong> the file, so it is no longer in Downloads.`},
-   {id:'dlcheck', what:'Check that it arrived', how:'Look in Makerspace 8: <strong>download-test</strong> should be there. Go back to Downloads: it should be gone.'},
+   {id:'dlmove', what:'Move it to your course folder on H:', how:`Click the file and press ${k('Ctrl+X')} (cut). Go to your H: drive, open <strong class="course">your course</strong>, and press ${k('Ctrl+V')} (paste). Cut and paste <strong>moves</strong> the file, so it is no longer in Downloads.`},
+   {id:'dlcheck', what:'Check that it arrived', how:'Look in your course folder: <strong>download-test</strong> should be there. Go back to Downloads: it should be gone.'},
    {id:'dlcopy', what:'Know the difference between copy and move', how:`${k('Ctrl+C')} then ${k('Ctrl+V')} <strong>copies</strong>: you end up with two files, one in Downloads and one on H:. ${k('Ctrl+X')} then ${k('Ctrl+V')} <strong>moves</strong>: one file, now on H:. Either way your work is safe once it is on H:.`}
   ],
-  tip:'<strong>End-of-class habit:</strong> Before you sign out, open Downloads and move anything you made today into H: → Makerspace 8.',
-  quiz:{q:'Layerling saved your file to Downloads. What should you do before class ends?', opts:['Nothing, it is saved','Move or copy it to H: → Makerspace 8','Move it to the desktop'], a:1, why:'Downloads is on the C: drive, which gets erased. Your work is only safe on H:.'}
+  tip:'<strong>End-of-class habit:</strong> Before you sign out, open Downloads and move anything you made today into H: → <strong class="course">your course</strong>.',
+  quiz:{q:'Layerling saved your file to Downloads. What should you do before class ends?', opts:['Nothing, it is saved','Move or copy it to your course folder on H:','Move it to the desktop'], a:1, why:'Downloads is on the C: drive, which gets erased. Your work is only safe on H:.'}
  },
- {id:'shortcuts', title:'Shortcut skills', blurb:'These keys work in almost every app. The boxes below check your work as you go.',
+ {id:'shortcuts', title:'Shortcut skills', cb:'Copy, paste and undo use the same <kbd>Ctrl</kbd> keys as a Chromebook. Screenshots are different: Win + Shift + S instead of Ctrl + Shift + Overview.', blurb:'These keys work in almost every app. The boxes below check your work as you go.',
   tasks:[
    {id:'copy', what:'Copy and paste', how:`Select the code below, press ${k('Ctrl+C')}, click in the box under it and press ${k('Ctrl+V')}.`, auto:'copy', practice:'copy'},
    {id:'undo', what:'Undo a mistake', how:`Type a few words in the box, then press ${k('Ctrl+Z')} to undo.`, auto:'undo', practice:'undo'},
@@ -294,7 +299,7 @@ const MISSIONS = [
   table:true,
   quiz:{q:'Which shortcut takes a screenshot of part of the screen?', opts:['Win + Shift + S','Ctrl + S','Alt + Tab'], a:0, why:'Win + Shift + S opens the Snipping Tool. Ctrl + S saves.'}
  },
- {id:'settings', title:'Settings & getting unstuck', blurb:'Know where to change things and what to do when an app freezes.',
+ {id:'settings', title:'Settings & getting unstuck', cb:'Task Manager (Ctrl + Shift + Esc) is like pressing Search + Esc on a Chromebook.', blurb:'Know where to change things and what to do when an app freezes.',
   tasks:[
    {id:'openset', what:'Open Settings', how:`Press ${k('Win+I')}. Look at the list on the left. Some settings may be locked on school computers; that is normal.`},
    {id:'display', what:'Find display scale', how:'Go to <strong>System → Display</strong> and find <strong>Scale</strong>. This makes text bigger or smaller. Look, but leave it as it is.'},
@@ -356,6 +361,7 @@ function taskbarSVG(){
 }
 
 function practiceHTML(type){
+  if(type==='course') return `<div class="practice"><label for="courseIn">My course is called</label><input type="text" id="courseIn" autocomplete="off" placeholder="e.g. Makerspace 9"></div>`;
   if(type==='copy') return `<div class="practice"><span class="code" id="codeSrc">MAKER-8-WIN11</span>
     <label for="copyIn">Paste the code here</label><input type="text" id="copyIn" autocomplete="off"><span class="status" id="copyStat"></span></div>`;
   if(type==='undo') return `<div class="practice"><label for="undoIn">Type, then press Ctrl + Z</label><textarea id="undoIn"></textarea><span class="status" id="undoStat"></span></div>`;
@@ -378,6 +384,7 @@ function render(){
   <section class="mission" id="m-${m.id}" aria-labelledby="h-${m.id}">
     <div class="mhead"><div class="badge">${i+1}</div><div><h2 id="h-${m.id}">${m.title}</h2><p>${m.blurb}</p></div></div>
     ${m.map?`<div class="tbwrap">${taskbarSVG()}</div><div class="tbinfo" id="tbInfo" aria-live="polite"><h3>Click a number</h3><p>Each dot points at part of the taskbar.</p></div>`:''}
+    ${m.cb?`<div class="cb"><strong>Coming from a Chromebook?</strong> ${m.cb}</div>`:''}
     ${m.tip?`<div class="tip">${m.tip}</div>`:''}
     <ol class="tasks">
       ${m.tasks.map(t=>`<li class="task ${S.done[t.id]?'is-done':''}" id="t-${t.id}">
@@ -470,6 +477,10 @@ function wire(){
     h.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show();}});
   });
 
+  // course name
+  const co=document.getElementById('courseIn');
+  if(co){ co.value=S.course||''; co.addEventListener('input',()=>{S.course=co.value; save(); paintCourse(); setDone('course', co.value.trim().length>1, true);}); }
+  paintCourse();
   // copy / paste
   const ci=document.getElementById('copyIn');
   if(ci) ci.addEventListener('input',()=>{
@@ -510,6 +521,11 @@ function wire(){
   }
 }
 
+function paintCourse(){
+  const v=(S.course||'').trim();
+  document.querySelectorAll('.course').forEach(el=>el.textContent = v || 'your course name');
+  const fc=document.getElementById('finCourse'); if(fc) fc.textContent = v || '—';
+}
 // snap detection (best effort)
 function checkSnap(){
   try{
@@ -527,7 +543,7 @@ const modal=document.getElementById('modal');
 document.getElementById('resetBtn').onclick=()=>{modal.classList.add('open');document.getElementById('cancelReset').focus();};
 document.getElementById('cancelReset').onclick=()=>modal.classList.remove('open');
 document.getElementById('confirmReset').onclick=()=>{
-  S={done:{},quiz:{},seen:{},name:'',auto:{}};save();nameIn.value='';modal.classList.remove('open');render();window.scrollTo(0,0);
+  S={done:{},quiz:{},seen:{},name:'',auto:{},course:''};save();nameIn.value='';modal.classList.remove('open');render();window.scrollTo(0,0);
 };
 document.addEventListener('keydown',e=>{if(e.key==='Escape') modal.classList.remove('open');});
 
