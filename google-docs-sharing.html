@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;700&display=swap" rel="stylesheet">
 <style>
-/* Layout idea: sticky progress header, mission list on the left, missions in one column beside Google Drive; partners work through it side by side. */
+/* Layout idea: sticky progress header, mission list on the left, missions in one column beside Google Drive; groups of three work through it side by side. */
 :root{
   --paper:#f3f6fb;
   --card:#ffffff;
@@ -183,7 +183,7 @@ ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;g
   <main id="main">
     <div class="intro">
       <h2>How this works</h2>
-      <p>Do this with a <strong>partner</strong>. You will both share files with each other, so most tasks happen twice: once when you send and once when your partner sends. Keep this page on the right side of your screen and Google Drive on the left. Tick each box when you finish.</p>
+      <p>Do this in a <strong>group of three</strong>. Everyone shares with everyone, so you will send files and receive them from two people. Work at the same pace as your group: many tasks need your teammates to finish a step first. Keep this page on the right side of your screen and Google Drive on the left. Tick each box when you finish.</p>
       <p>Everything here works the same on a Windows computer and on a Chromebook, because sharing all happens in the web browser.</p>
       <div class="roles" aria-label="The three access levels">
         <div class="role"><b>Viewer</b><span class="can">Can read it.</span><small>Can't change or comment.</small></div>
@@ -200,7 +200,7 @@ ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;g
       <input id="stuName" type="text" placeholder="First and last name" autocomplete="off">
       <div class="row">
         <div><span class="big" id="finCourse" style="font-size:1.4rem">—</span><small>course</small></div>
-        <div><span class="big" id="finPartner" style="font-size:1.4rem">—</span><small>partner</small></div>
+        <div><span class="big" id="finPartner" style="font-size:1.4rem">—</span><small>teammates</small></div>
         <div><span class="big" id="finTasks">0</span><small>tasks done</small></div>
         <div><span class="big" id="finQuiz">0</span><small>quiz questions right first try</small></div>
       </div>
@@ -228,10 +228,11 @@ ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;g
 const K = '<kbd>⊞ Win</kbd>';
 const k = s => s.split('+').map(x => x.trim()==='Win' ? K : `<kbd>${x.trim()}</kbd>`).join(' + ');
 const C = '<strong class="course">your course</strong>';
-const P = '<strong class="partner-name">your partner</strong>';
+const T1 = '<strong class="t1">teammate 1</strong>';
+const T2 = '<strong class="t2">teammate 2</strong>';
 
 const SCENARIOS = [
- {q:'Your partner should read your poster plan but not change it.', a:0, why:'Viewer lets them read without changing anything.'},
+ {q:'Your teammates should read your poster plan but not change it.', a:0, why:'Viewer lets them read without changing anything.'},
  {q:'A classmate should leave feedback on your essay without changing your words.', a:1, why:'Commenter lets them comment, and you decide what to change.'},
  {q:'Your group is writing a project plan together.', a:2, why:'Everyone writing together needs Editor.'},
  {q:'A classmate will check your spelling and suggest fixes you can accept or reject.', a:1, why:'Commenters can make suggestions. You accept or reject each one.'},
@@ -240,70 +241,72 @@ const SCENARIOS = [
 const ROLES=['Viewer','Commenter','Editor'];
 
 const MISSIONS = [
- {id:'setup', title:'Get set up', blurb:'Find a partner and open Google Drive.',
+ {id:'setup', title:'Get set up', blurb:'Form a group of three and open Google Drive.',
   tasks:[
    {id:'course', what:'Type the name of your course', how:'Write it the way your teacher does, for example <strong>Makerspace 9</strong>.', auto:'course', practice:'course'},
-   {id:'partner', what:'Type your partner\'s first name', how:'This page uses it in the instructions so you know who to share with.', auto:'partner', practice:'partner'},
+   {id:'partner', what:'Type your teammates\' first names', how:'This page uses their names in the instructions so you know who to share with.', auto:'partner', practice:'partner'},
    {id:'drive', what:'Open Google Drive and check your account', how:`Open <strong>drive.google.com</strong> in a new window (${k('Ctrl+N')}) and sign in with your <strong>school</strong> account. Click your profile picture at the top right to check the email address. Snap Drive to the left half with ${k('Win+←')}.`},
-   {id:'email', what:'Find out your partner\'s school email', how:`Ask ${P} for their school email address. In the Share box later, you can also start typing their name and pick them from the list.`}
+   {id:'email', what:'Find out your teammates\' school emails', how:`Ask ${T1} and ${T2} for their school email addresses. In the Share box later, you can also start typing a name and pick the person from the list.`}
   ],
   tip:'<strong>School accounts only.</strong> Share school work with school accounts. Many school accounts can\'t share with personal Gmail accounts at all.',
   quiz:{q:'Who should you share school work with?', opts:['Anyone who asks','Classmates and teachers, using school accounts','Your personal Gmail so you can work at home'], a:1, why:'Keep school work in school accounts. Use your school account at home instead of sharing to a personal one.'}
  },
- {id:'share', title:'Share a document', blurb:'Make a Google Doc and share it with your partner. Your partner does the same for you.',
+ {id:'share', title:'Share a document', blurb:'Make a Google Doc and share it with both teammates at once. They do the same, so you will receive two Docs.',
   tasks:[
    {id:'makedoc', what:'Make a practice Doc', how:`In Drive, click <strong>+ New → Google Docs</strong>. Name it <strong>Sharing practice – your first name</strong> and type a short paragraph about a project you would like to make in ${C}.`},
    {id:'sharebtn', what:'Click Share', how:'Click the blue <strong>Share</strong> button at the top right of the Doc.'},
-   {id:'addpartner', what:'Add your partner as a Commenter', how:`Type ${P}'s school email or name. Change the role on the right from Editor to <strong>Commenter</strong>.`},
-   {id:'message', what:'Add a message and send', how:'Keep <strong>Notify people</strong> ticked, type a short message like "Please comment on my project idea", and click <strong>Send</strong>.'},
-   {id:'getlink', what:'Paste the link your partner shared with you', how:`When ${P} shares their Doc, you get an email. Open it, or find the Doc in Drive under <strong>Shared with me</strong>. Open the Doc, copy the address from the address bar (${k('Ctrl+L')} then ${k('Ctrl+C')}) and paste it below.`, auto:'link', practice:'link'}
+   {id:'addpartner', what:'Add both teammates as Commenters', how:`Type ${T1}'s school email or name and pick them from the list, then do the same for ${T2}. Both names sit in the box together. Change the role on the right from Editor to <strong>Commenter</strong>.`},
+   {id:'message', what:'Add a message and send', how:'Keep <strong>Notify people</strong> ticked, type a short message like "Please comment on my project idea", and click <strong>Send</strong>. One message goes to both teammates.'},
+   {id:'getlink', what:'Paste the link to one teammate\'s Doc', how:`When your teammates share their Docs, you get two emails. Open one, or find the Docs in Drive under <strong>Shared with me</strong>. Open a Doc, copy the address from the address bar (${k('Ctrl+L')} then ${k('Ctrl+C')}) and paste it below.`, auto:'link', practice:'link'}
   ],
   quiz:{q:'Where do you find files other people shared with you?', opts:['My Drive','Shared with me','Trash'], a:1, why:'Shared with me in Drive\'s left menu lists everything other people shared with you.'}
  },
- {id:'roles', title:'Choose the right access', blurb:'Picking the right level of access protects your work. Sort these examples, then try commenting and suggesting.',
+ {id:'roles', title:'Choose the right access', blurb:'Picking the right level of access protects your work. Sort these examples, then comment, suggest, and give your teammates different access to the same Doc.',
   tasks:[
    {id:'sorter', what:'Sort the five examples', how:'Pick Viewer, Commenter or Editor for each example below. The box ticks itself when you get all five right.', auto:'sorter', practice:'sorter'},
-   {id:'comment', what:'Comment on your partner\'s Doc', how:`Open ${P}'s Doc. Select a few words, press ${k('Ctrl+Alt+M')} (or click the comment button that appears), type a helpful comment and click <strong>Comment</strong>.`},
-   {id:'suggest', what:'Suggest a change', how:'In the top right of the Doc, switch the pencil menu to <strong>Suggesting</strong>. Change one word. It shows in colour as a suggestion instead of a real change.'},
-   {id:'accept', what:'Accept or reject a suggestion on your Doc', how:'Open your own Doc. Each suggestion from your partner has a ✓ (accept) and ✕ (reject). Pick one for each suggestion, and reply to their comment.'},
-   {id:'editor', what:'Change your partner to Editor', how:`Click <strong>Share</strong> again. Next to ${P}'s name, change Commenter to <strong>Editor</strong> and click <strong>Save</strong>.`}
+   {id:'comment', what:'Comment on both teammates\' Docs', how:`Open ${T1}'s Doc. Select a few words, press ${k('Ctrl+Alt+M')} (or click the comment button that appears), type a helpful comment and click <strong>Comment</strong>. Then do the same on ${T2}'s Doc.`},
+   {id:'suggest', what:'Suggest a change', how:'In one teammate\'s Doc, switch the pencil menu at the top right to <strong>Suggesting</strong>. Change one word. It shows in colour as a suggestion instead of a real change.'},
+   {id:'accept', what:'Deal with the feedback on your Doc', how:'Open your own Doc. You should have comments from two people. Accept (✓) or reject (✕) each suggestion, and reply to each comment.'},
+   {id:'editor', what:'Give your teammates different access', how:`Click <strong>Share</strong> on your Doc. Change ${T1} to <strong>Editor</strong> and leave ${T2} as <strong>Commenter</strong>. Click <strong>Save</strong>. Each person can have a different level on the same Doc.`},
+   {id:'compare', what:'Compare what you can do', how:'Open each teammate\'s Doc and look at the pencil menu at the top right. Where you are an Editor it says <strong>Editing</strong>. Where you are a Commenter you can only choose Suggesting or Viewing.'}
   ],
   tip:'<strong>Commenters can suggest, not change.</strong> When you want feedback on your writing, Commenter is usually the safest choice.',
-  quiz:{q:'You want feedback but you don\'t want anyone changing your words. Which access do you give?', opts:['Viewer','Commenter','Editor'], a:1, why:'Commenters can comment and suggest, and you decide what to accept.'}
+  quiz:{q:'Can two people have different access to the same Doc?', opts:['No, everyone gets the same access','Yes, you set the access for each person','Only the owner can see it'], a:1, why:'In the Share box you choose Viewer, Commenter or Editor separately for each person.'}
  },
  {id:'keep', title:'Find and keep shared files', blurb:'A file someone shared with you belongs to them. If they delete it or stop sharing, you lose it.',
   tasks:[
-   {id:'sharedwithme', what:'Find your partner\'s Doc in Shared with me', how:'In Drive, click <strong>Shared with me</strong> in the left menu. Find your partner\'s Doc. You can sort by <strong>Date shared</strong> to see the newest first.'},
-   {id:'shortcut', what:'Add a shortcut in your own Drive', how:`Right-click the Doc and choose <strong>Organize → Add shortcut</strong>. Pick your ${C} folder and click <strong>Add</strong>. Now it shows up in your folder too. It is still your partner's file.`},
-   {id:'copy', what:'Make your own copy', how:'Open your partner\'s Doc and click <strong>File → Make a copy</strong>. Name it <strong>Copy of …</strong> and pick your course folder. The copy belongs to you and does not change when they edit theirs.'},
-   {id:'owner', what:'Check who owns a file', how:'In Drive, right-click a file and choose <strong>File information → Details</strong>. The <strong>Owner</strong> line tells you whose file it is.'}
+   {id:'sharedwithme', what:'Find both teammates\' Docs in Shared with me', how:'In Drive, click <strong>Shared with me</strong> in the left menu. Find both Docs. You can sort by <strong>Date shared</strong> to see the newest first.'},
+   {id:'shortcut', what:'Add a shortcut in your own Drive', how:`Right-click ${T1}'s Doc and choose <strong>Organize → Add shortcut</strong>. Pick your ${C} folder and click <strong>Add</strong>. Now it shows up in your folder too. It is still ${T1}'s file.`},
+   {id:'copy', what:'Make your own copy', how:`Open ${T2}'s Doc and click <strong>File → Make a copy</strong>. Pick your course folder and click <strong>Make a copy</strong>. The copy belongs to you and does not change when ${T2} edits theirs.`},
+   {id:'owner', what:'Check who owns each file', how:'In Drive, right-click the shortcut and then the copy, and choose <strong>File information → Details</strong> each time. Compare the <strong>Owner</strong> lines.'}
   ],
-  quiz:{q:'Your partner shared a Doc with you, then deleted it. What happens to your shortcut?', opts:['It still works','It stops working','It turns into a copy'], a:1, why:'A shortcut only points to their file. Make a copy if you need to keep your own version.'}
+  quiz:{q:'A teammate shared a Doc with you, then deleted it. What happens to your shortcut?', opts:['It still works','It stops working','It turns into a copy'], a:1, why:'A shortcut only points to their file. Make a copy if you need to keep your own version.'}
  },
  {id:'folder', title:'Share a group folder', blurb:'For group projects, share one folder instead of lots of separate files. Everything inside it is shared automatically.',
   tasks:[
-   {id:'mkfolder', what:'One partner makes a group folder', how:`Decide which partner goes first. That partner clicks <strong>+ New → New folder</strong> in Drive and names it <strong>${'<span class="course">your course</span>'} – Group project</strong>.`},
-   {id:'sharefolder', what:'Share the folder as Editor', how:`Right-click the folder and choose <strong>Share → Share</strong>. Add ${P} as <strong>Editor</strong> and click <strong>Send</strong>.`},
-   {id:'adddoc', what:'The other partner adds a Doc', how:'The other partner opens the folder from <strong>Shared with me</strong>, clicks <strong>+ New → Google Docs</strong> and names it <strong>Group notes</strong>. Both of you can now see and edit it.'},
-   {id:'moveinto', what:'Drag one of your own Docs into the folder', how:'Each partner drags their <strong>Sharing practice</strong> Doc into the group folder. Drive asks if you want to share it with the folder\'s people. Click <strong>Move</strong>.'}
+   {id:'mkfolder', what:'One person makes the group folder', how:`Pick one person to make the folder. They click <strong>+ New → New folder</strong> in Drive and name it <strong><span class="course">your course</span> – Group project</strong>.`},
+   {id:'sharefolder', what:'Share the folder with the other two as Editors', how:'The folder maker right-clicks the folder, chooses <strong>Share → Share</strong>, adds both other group members as <strong>Editor</strong> and clicks <strong>Send</strong>.'},
+   {id:'adddoc', what:'A second person adds a Doc', how:'Another group member opens the folder from <strong>Shared with me</strong>, clicks <strong>+ New → Google Docs</strong> and names it <strong>Group notes</strong>. Everyone types one line in it.'},
+   {id:'moveinto', what:'Everyone drags their own Doc into the folder', how:'Each person drags their <strong>Sharing practice</strong> Doc into the group folder. Drive asks if you want to share it with the folder\'s people. Click <strong>Move</strong>.'}
   ],
   tip:'<strong>Who owns what:</strong> the person who makes a file owns it, even inside someone else\'s folder. Ownership matters if someone leaves the group.',
-  quiz:{q:'You share a folder with your group as Editor. Then you add a new Doc to the folder. Who can see the new Doc?', opts:['Only you','Everyone the folder is shared with','Nobody until you share it separately'], a:1, why:'Files inside a shared folder are shared with the same people automatically.'}
+  quiz:{q:'Your group folder is shared with your two teammates as Editors. You add a new Doc to it. Who can see the new Doc?', opts:['Only you','Your whole group','Nobody until you share it separately'], a:1, why:'Files inside a shared folder are shared with the same people automatically.'}
  },
- {id:'transfer', title:'Transfer ownership', blurb:'When a group member leaves, or a file should belong to someone else, you can hand over ownership of a file.',
+ {id:'transfer', title:'Transfer ownership', blurb:'When someone leaves a group, or a file should belong to someone else, you can hand over ownership. Your group passes ownership around in a circle.',
   tasks:[
-   {id:'startxfer', what:'Offer ownership of your practice Doc', how:`Open your <strong>Sharing practice</strong> Doc and click <strong>Share</strong>. Next to ${P}'s name (they must be an Editor), open the role menu and choose <strong>Transfer ownership</strong>, then <strong>Send invitation</strong>.`},
-   {id:'acceptxfer', what:'Accept the ownership your partner offered', how:'Your partner\'s invitation arrives by email. Open their Doc, click <strong>Share</strong>, and click <strong>Accept ownership</strong>. Now you own their Doc and they own yours.'},
-   {id:'checkxfer', what:'Check the new owner', how:'In Drive, right-click the Doc and choose <strong>File information → Details</strong>. The Owner line now shows the new owner.'}
+   {id:'order', what:'Decide the order', how:'Put your three first names in alphabetical order. Each person passes ownership to the <strong>next</strong> name, and the last person passes to the first. Example: Ava → Ben → Chloe → Ava.'},
+   {id:'startxfer', what:'Offer ownership of your practice Doc', how:'Open your <strong>Sharing practice</strong> Doc and click <strong>Share</strong>. Next to the next person\'s name (they must be an Editor, so change them first if needed), open the role menu and choose <strong>Transfer ownership</strong>, then <strong>Send invitation</strong>.'},
+   {id:'acceptxfer', what:'Accept the ownership offered to you', how:'The previous person\'s invitation arrives by email. Open their Doc, click <strong>Share</strong>, and click <strong>Accept ownership</strong>.'},
+   {id:'checkxfer', what:'Check the circle worked', how:'In the group folder, right-click each <strong>Sharing practice</strong> Doc and choose <strong>File information → Details</strong>. Each Doc should now be owned by the next person, not the person who made it.'}
   ],
   tip:'<strong>Option missing?</strong> Some school accounts have Transfer ownership turned off. If you don\'t see it, use <strong>File → Make a copy</strong> instead: the person who makes the copy owns it.',
-  quiz:{q:'You offered to transfer ownership to your partner. When does it actually happen?', opts:['Immediately','When your partner accepts','At the end of the school year'], a:1, why:'The other person has to accept before they become the owner.'}
+  quiz:{q:'You offered to transfer ownership to a teammate. When does it actually happen?', opts:['Immediately','When your teammate accepts','At the end of the school year'], a:1, why:'The other person has to accept before they become the owner.'}
  },
  {id:'safe', title:'Fix mistakes and stay safe', blurb:'Know how to undo damage and control who can open your work.',
   tasks:[
-   {id:'history', what:'Open version history', how:`In your Doc, click <strong>File → Version history → See version history</strong> (or press ${k('Ctrl+Alt+Shift+H')}). Click an older version to see what the Doc looked like. <strong>Restore this version</strong> brings it back if someone wrecks your work.`},
+   {id:'history', what:'Open version history', how:`Open the <strong>Group notes</strong> Doc and click <strong>File → Version history → See version history</strong> (or press ${k('Ctrl+Alt+Shift+H')}). Each person's changes show in a different colour. Click an older version to see it. <strong>Restore this version</strong> brings it back if someone wrecks your work.`},
    {id:'general', what:'Check General access', how:'Click <strong>Share</strong> and look at <strong>General access</strong>. <strong>Restricted</strong> means only the people listed can open it. That is the safest setting. Avoid <strong>Anyone with the link</strong> for school work.'},
-   {id:'remove', what:'Remove someone\'s access', how:`Click <strong>Share</strong>. Next to a person's name, open the role menu and choose <strong>Remove access</strong>, then <strong>Save</strong>. Try it on a practice file, then add ${P} back.`},
+   {id:'remove', what:'Remove someone\'s access', how:`On a Doc you own, click <strong>Share</strong>. Next to ${T2}'s name, open the role menu and choose <strong>Remove access</strong>, then <strong>Save</strong>. Ask ${T2} to check they can't open it any more, then add them back.`},
    {id:'tidy', what:'Tidy up', how:'Ask your teacher whether to keep the practice files. If not, right-click each one you own and choose <strong>Move to trash</strong>.'}
   ],
   tip:'<strong>Remember:</strong> Editors can delete text, but version history keeps every old version. Almost nothing in a Google Doc is lost for good.',
@@ -313,7 +316,7 @@ const MISSIONS = [
 
 // ---------- state ----------
 const KEY='dbss-docs-sharing-v1';
-let S = {done:{}, quiz:{}, name:'', auto:{}, course:'', partner:'', sort:{}};
+let S = {done:{}, quiz:{}, name:'', auto:{}, course:'', t1:'', t2:'', sort:{}};
 try{ const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(S, JSON.parse(raw)); }catch(e){}
 // borrow the course name from the other tutorials if the student did one first
 try{ if(!S.course){ for(const key of ['dbss-win11-missions-v1','dbss-drive-file-transfer-v1','dbss-drive-transfer-v1']){ const w=JSON.parse(localStorage.getItem(key)||'{}'); if(w.course){ S.course=w.course; break; } } } }catch(e){}
@@ -324,8 +327,8 @@ const esc = v => String(v).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&am
 // ---------- render ----------
 function practiceHTML(type){
   if(type==='course') return `<div class="practice"><label for="courseIn">My course is called</label><input type="text" id="courseIn" autocomplete="off" placeholder="e.g. Makerspace 9"></div>`;
-  if(type==='partner') return `<div class="practice"><label for="partnerIn">My partner's first name</label><input type="text" id="partnerIn" autocomplete="off" placeholder="e.g. Jordan"></div>`;
-  if(type==='link') return `<div class="practice"><label for="linkIn">Link to your partner's Doc</label><input type="text" id="linkIn" autocomplete="off" placeholder="https://docs.google.com/document/d/…"><span class="status" id="linkStat" aria-live="polite"></span></div>`;
+  if(type==='partner') return `<div class="practice"><label for="t1In">Teammate 1</label><input type="text" id="t1In" autocomplete="off" placeholder="e.g. Jordan"><label for="t2In">Teammate 2</label><input type="text" id="t2In" autocomplete="off" placeholder="e.g. Sam"><span class="status">In a group of two? Leave teammate 2 empty and skip the steps for a third person.</span></div>`;
+  if(type==='link') return `<div class="practice"><label for="linkIn">Link to a teammate's Doc</label><input type="text" id="linkIn" autocomplete="off" placeholder="https://docs.google.com/document/d/…"><span class="status" id="linkStat" aria-live="polite"></span></div>`;
   if(type==='sorter') return `<div class="practice sorter">${SCENARIOS.map((sc,i)=>`<div class="scen ${S.sort[i]===sc.a?'right':''}" data-s="${i}"><span>${sc.q}</span><div class="opts">${ROLES.map((r,j)=>`<button type="button" data-r="${j}" class="${S.sort[i]===j?(j===sc.a?'right':'wrong'):''}">${r}</button>`).join('')}</div><span class="feedback" aria-live="polite">${S.sort[i]===sc.a?'✓ '+sc.why:''}</span></div>`).join('')}</div>`;
   return '';
 }
@@ -385,11 +388,12 @@ function update(){
 }
 
 function paintNames(){
-  const c=(S.course||'').trim(), p=(S.partner||'').trim();
+  const c=(S.course||'').trim(), a=(S.t1||'').trim(), b=(S.t2||'').trim();
   document.querySelectorAll('.course').forEach(el=>el.textContent = c || 'your course name');
-  document.querySelectorAll('.partner-name').forEach(el=>el.textContent = p || 'your partner');
+  document.querySelectorAll('.t1').forEach(el=>el.textContent = a || 'teammate 1');
+  document.querySelectorAll('.t2').forEach(el=>el.textContent = b || 'teammate 2');
   document.getElementById('finCourse').textContent = c || '—';
-  document.getElementById('finPartner').textContent = p || '—';
+  document.getElementById('finPartner').textContent = [a,b].filter(Boolean).join(' & ') || '—';
 }
 
 function setDone(id, val, auto){
@@ -405,7 +409,7 @@ function checkLink(v){
   const st=document.getElementById('linkStat'); st.className='status';
   v=v.trim(); if(!v){ st.textContent=''; return; }
   const m=v.match(/^https:\/\/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([\w-]{20,})/);
-  if(m){ st.textContent=`✓ That is a real Google ${m[1]==='document'?'Doc':m[1]==='spreadsheets'?'Sheet':'Slides'} link. Your partner's share reached you.`; st.classList.add('ok'); setDone('getlink',true,true); }
+  if(m){ st.textContent=`✓ That is a real Google ${m[1]==='document'?'Doc':m[1]==='spreadsheets'?'Sheet':'Slides'} link. Your teammate's share reached you.`; st.classList.add('ok'); setDone('getlink',true,true); }
   else if(/drive\.google\.com/.test(v)){ st.textContent='That is a Google Drive link, not the Doc itself. Open the Doc first, then copy the address.'; st.classList.add('bad'); }
   else { st.textContent='That doesn\'t look like a Google Doc link. It should start with https://docs.google.com/'; st.classList.add('bad'); }
 }
@@ -427,9 +431,8 @@ function wire(){
   const co=document.getElementById('courseIn');
   if(co){ co.value=S.course||''; if(co.value.trim().length>1 && !S.done.course) setDone('course',true,true);
     co.addEventListener('input',()=>{S.course=co.value; save(); paintNames(); setDone('course', co.value.trim().length>1, true);}); }
-  const pa=document.getElementById('partnerIn');
-  if(pa){ pa.value=S.partner||'';
-    pa.addEventListener('input',()=>{S.partner=pa.value; save(); paintNames(); setDone('partner', pa.value.trim().length>1, true);}); }
+  ['t1','t2'].forEach(key=>{ const el=document.getElementById(key+'In'); if(!el) return; el.value=S[key]||'';
+    el.addEventListener('input',()=>{S[key]=el.value; save(); paintNames(); setDone('partner', (S.t1||'').trim().length>1, true);}); });
   const li=document.getElementById('linkIn');
   if(li) li.addEventListener('input',()=>checkLink(li.value));
   document.querySelectorAll('.scen').forEach(card=>{
@@ -454,7 +457,7 @@ document.getElementById('resetBtn').onclick=()=>{modal.classList.add('open');doc
 document.getElementById('cancelReset').onclick=()=>modal.classList.remove('open');
 document.getElementById('confirmReset').onclick=()=>{
   const keepCourse=S.course;
-  S={done:{},quiz:{},name:'',auto:{},course:keepCourse,partner:'',sort:{}};save();nameIn.value='';modal.classList.remove('open');render();window.scrollTo(0,0);
+  S={done:{},quiz:{},name:'',auto:{},course:keepCourse,t1:'',t2:'',sort:{}};save();nameIn.value='';modal.classList.remove('open');render();window.scrollTo(0,0);
 };
 document.addEventListener('keydown',e=>{if(e.key==='Escape') modal.classList.remove('open');});
 
