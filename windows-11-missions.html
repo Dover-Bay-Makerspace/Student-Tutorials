@@ -152,6 +152,15 @@ ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;g
   nav.side button{flex:1 1 140px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+.savechip{border:0;border-radius:999px;padding:6px 12px;font-weight:700;font-size:.85rem;cursor:pointer;font-family:var(--font-body)}
+.savechip.on{background:var(--good-soft);color:var(--good)}
+.savechip.warn{background:var(--warn-soft);color:var(--warn)}
+.savebar{background:var(--card);border:2px solid var(--blue);border-radius:12px;padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.savebtns{display:flex;flex-wrap:wrap;gap:10px}
+.savebtns label.btn{display:inline-flex;align-items:center}
+.savehelp{color:var(--muted);font-size:.92rem;max-width:70ch}
+.savenote{font-weight:700;color:var(--good)}
+.savenote.bad{color:var(--bad)}
 </style>
 </head>
 <body>
@@ -161,6 +170,7 @@ ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;g
     <div class="bar"><span id="barFill"></span></div>
     <b id="progText">0 / 0 tasks</b>
   </div>
+  <button class="savechip warn" id="saveChip" type="button">Not saved to H: yet</button>
 </header>
 
 <div class="wrap">
@@ -169,9 +179,10 @@ ol.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;g
     <div class="intro">
       <h2>How this works</h2>
       <p>Keep this page open on one side of your screen and do every task on your <strong>real Windows desktop</strong>. Tick the box when you finish a task. Some tasks check themselves: when this page notices you did it, the box ticks on its own.</p>
-      <p>Keys you press look like this: <kbd>Ctrl</kbd> + <kbd>C</kbd>. The <kbd>⊞ Win</kbd> key is the Windows logo key, bottom left of your keyboard. Your progress is saved in this browser, so you can stop and come back.</p>
+      <p>Keys you press look like this: <kbd>Ctrl</kbd> + <kbd>C</kbd>. The <kbd>⊞ Win</kbd> key is the Windows logo key, bottom left of your keyboard. Use the blue box below to save your progress to your H: drive, so you can stop and carry on from any computer.</p>
       <p>Used to a Chromebook? Look for the blue <strong>Coming from a Chromebook?</strong> notes. They compare each Windows skill to what you already know.</p>
     </div>
+    <div class="savebar" id="saveBar" aria-live="polite"></div>
     <div id="missions"></div>
 
     <section class="finish" id="finish" aria-labelledby="finTitle">
@@ -328,7 +339,7 @@ const TASKBAR = [
 const KEY='dbss-win11-missions-v1';
 let S = {done:{}, quiz:{}, seen:{}, name:'', auto:{}};
 try{ const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(S, JSON.parse(raw)); }catch(e){}
-const save=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} };
+const save=()=>{ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} queueFileSave(); };
 
 const allTasks = MISSIONS.flatMap(m=>m.tasks.map(t=>({...t, m:m.id})));
 
@@ -630,6 +641,145 @@ function checkSnap(){
   }catch(e){}
 }
 
+const PROGRESS={where:'go to <strong>This PC</strong>, open your H: drive (the one with your name)', title:'Windows 11 Missions', file:'Windows11Missions-progress.json'};
+// ---------- auto-save to a progress file on the H: drive ----------
+// Uses the browser's File System Access API (Chrome and Edge). Students pick a file once;
+// every change after that is written to it. On another computer they open the same file.
+const FS_OK = 'showSaveFilePicker' in window && 'showOpenFilePicker' in window;
+const FILE_TYPES = [{description:'Tutorial progress file', accept:{'application/json':['.json']}}];
+let fileHandle = null, fileState = 'none', lastSaved = null, writeTimer = null, writing = false, writeAgain = false;
+
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open('dbss-tutorial-progress',1); r.onupgradeneeded=()=>r.result.createObjectStore('h'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbSet(v){ try{ const db=await idb(); const tx=db.transaction('h','readwrite'); tx.objectStore('h').put(v,KEY); }catch(e){} }
+async function idbGet(){ try{ const db=await idb(); return await new Promise(res=>{ const q=db.transaction('h').objectStore('h').get(KEY); q.onsuccess=()=>res(q.result||null); q.onerror=()=>res(null); }); }catch(e){ return null; } }
+
+function progressPayload(){ return JSON.stringify({tutorial:KEY, title:PROGRESS.title, savedAt:new Date().toISOString(), data:S}, null, 1); }
+
+function queueFileSave(){
+  if(!fileHandle || fileState!=='on') return;
+  clearTimeout(writeTimer); writeTimer=setTimeout(writeFile, 400);
+}
+async function writeFile(){
+  if(writing){ writeAgain=true; return; }
+  writing=true;
+  try{
+    const w=await fileHandle.createWritable(); await w.write(progressPayload()); await w.close();
+    lastSaved=new Date(); fileState='on';
+  }catch(e){ fileState='lost'; }
+  writing=false; paintSave();
+  if(writeAgain){ writeAgain=false; writeFile(); }
+}
+
+function mergeProgress(file){
+  const m={...S};
+  for(const k of Object.keys(file)){
+    const a=S[k], b=file[k];
+    if(k==='done'||k==='auto'){ m[k]={...(a||{})}; for(const id in b) if(b[id]) m[k][id]=true; }
+    else if(k==='quiz'){ m[k]={...(a||{})}; for(const id in b) if(b[id]?.solved || !m[k][id]) m[k][id]=b[id]; }
+    else if(b && typeof b==='object' && !Array.isArray(b)){ m[k]={...(a||{}), ...b}; }
+    else if(typeof b==='string'){ m[k]= b.trim() ? b : (a||''); }
+    else m[k]=b;
+  }
+  return m;
+}
+function applyLoaded(data){
+  S=mergeProgress(data);
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+  const n=document.getElementById('stuName'); if(n) n.value=S.name||'';
+  render();
+}
+
+async function startSaving(){
+  try{
+    const h=await window.showSaveFilePicker({suggestedName:PROGRESS.file, types:FILE_TYPES});
+    try{ const old=JSON.parse(await (await h.getFile()).text()); if(old && old.data && old.tutorial===KEY) applyLoaded(old.data); }catch(e){}
+    fileHandle=h; fileState='on'; await idbSet(h); await writeFile();
+    saveMsg(`Saving to <strong>${esc2(h.name)}</strong>. Every tick and answer now saves automatically.`);
+  }catch(e){ if(e.name!=='AbortError') saveMsg('That file could not be used. Try again and pick a folder on your H: drive.', true); }
+}
+async function loadAndSave(){
+  try{
+    const [h]=await window.showOpenFilePicker({types:FILE_TYPES, multiple:false});
+    const text=await (await h.getFile()).text();
+    let obj; try{ obj=JSON.parse(text); }catch(e){ obj=null; }
+    if(!obj || !obj.data){ saveMsg('That is not a tutorial progress file. Pick the .json file you saved before.', true); return; }
+    if(obj.tutorial!==KEY){ saveMsg(`That is the progress file for <strong>${esc2(obj.title||'another tutorial')}</strong>. Pick the one for this tutorial.`, true); return; }
+    const perm=await h.requestPermission({mode:'readwrite'});
+    applyLoaded(obj.data);
+    if(perm==='granted'){ fileHandle=h; fileState='on'; await idbSet(h); await writeFile(); saveMsg(`Welcome back! Your progress is loaded and saving to <strong>${esc2(h.name)}</strong> again.`); }
+    else { fileHandle=null; fileState='none'; saveMsg('Progress loaded, but saving is off because you did not allow changes to the file. Click "Open my progress file" again and choose Allow / Save changes.', true); }
+  }catch(e){ if(e.name!=='AbortError') saveMsg('That file could not be opened. Try again.', true); }
+}
+async function reconnect(){
+  try{
+    const perm=await fileHandle.requestPermission({mode:'readwrite'});
+    if(perm!=='granted'){ saveMsg('Saving is still off. Click Reconnect again and choose Allow.', true); return; }
+    const obj=JSON.parse(await (await fileHandle.getFile()).text());
+    if(obj && obj.data && obj.tutorial===KEY) applyLoaded(obj.data);
+    fileState='on'; await writeFile(); saveMsg(`Reconnected. Saving to <strong>${esc2(fileHandle.name)}</strong>.`);
+  }catch(e){ fileHandle=null; fileState='none'; paintSave(); saveMsg('Could not find your progress file. Click "Open my progress file" and pick it from your H: drive.', true); }
+}
+
+// Fallback for browsers without file access (for example Firefox): download and upload the file by hand.
+function downloadProgress(){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([progressPayload()],{type:'application/json'})); a.download=PROGRESS.file;
+  document.body.appendChild(a); a.click(); a.remove();
+  saveMsg(`Downloaded <strong>${PROGRESS.file}</strong>. Move it from Downloads to your H: drive, and download it again before you leave.`);
+}
+function uploadProgress(input){
+  const f=input.files[0]; if(!f) return;
+  f.text().then(t=>{ let o; try{o=JSON.parse(t);}catch(e){}
+    if(!o||!o.data){ saveMsg('That is not a tutorial progress file.', true); return; }
+    if(o.tutorial!==KEY){ saveMsg(`That is the progress file for <strong>${esc2(o.title||'another tutorial')}</strong>.`, true); return; }
+    applyLoaded(o.data); saveMsg('Welcome back! Your progress is loaded.'); });
+}
+
+const esc2 = v => String(v).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+let saveNote = '', saveNoteBad = false;
+function saveMsg(html, bad){ saveNote=html; saveNoteBad=!!bad; paintSave(); }
+
+function paintSave(){
+  const chip=document.getElementById('saveChip'), bar=document.getElementById('saveBar');
+  if(!chip||!bar) return;
+  const t=lastSaved ? lastSaved.toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit'}) : '';
+  if(fileState==='on'){ chip.className='savechip on'; chip.textContent = t ? `Saved to H: ${t}` : 'Saving to H:'; }
+  else if(fileState==='lost'){ chip.className='savechip warn'; chip.textContent='Not saving: reconnect'; }
+  else { chip.className='savechip warn'; chip.textContent='Not saved to H: yet'; }
+  let body='';
+  if(FS_OK){
+    if(fileState==='on') body=`<p><strong>Auto-save is on.</strong> Your progress saves to <strong>${esc2(fileHandle.name)}</strong> every time you tick a box or answer a question.</p>`;
+    else if(fileState==='lost' && fileHandle) body=`<p><strong>Auto-save is paused.</strong> Click Reconnect to keep saving to <strong>${esc2(fileHandle.name)}</strong>.</p><div class="savebtns"><button class="btn" type="button" id="svReconnect">Reconnect</button><button class="btn ghost" type="button" id="svOpen">Open a different file</button></div>`;
+    else body=`<p><strong>Save your progress to your H: drive</strong> so you can carry on from any computer. Do this once at the start.</p>
+      <div class="savebtns"><button class="btn" type="button" id="svStart">First time: start saving to H:</button><button class="btn ghost" type="button" id="svOpen">Coming back: open my progress file</button></div>
+      <p class="savehelp">First time: ${PROGRESS.where} and click <strong>Save</strong> (keep the name <strong>${PROGRESS.file}</strong>). Coming back: find that same file on H: and click <strong>Open</strong>, then choose <strong>Save changes</strong> or <strong>Allow</strong> if your browser asks.</p>`;
+  } else {
+    body=`<p><strong>Save your progress to your H: drive</strong> so you can carry on from any computer. This browser can't save to H: automatically, so download your progress file before you leave and move it to H:.</p>
+      <div class="savebtns"><button class="btn" type="button" id="svDownload">Download my progress file</button><label class="btn ghost" for="svUpload">Open my progress file</label><input type="file" id="svUpload" accept=".json,application/json" hidden></div>`;
+  }
+  bar.innerHTML = body + (saveNote ? `<p class="savenote ${saveNoteBad?'bad':''}" role="status">${saveNote}</p>` : '');
+  const on=(id,fn)=>{ const el=document.getElementById(id); if(el) el.onclick=fn; };
+  on('svStart',startSaving); on('svOpen',loadAndSave); on('svReconnect',reconnect); on('svDownload',downloadProgress);
+  const up=document.getElementById('svUpload'); if(up) up.onchange=()=>uploadProgress(up);
+  chip.onclick=()=>bar.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+async function initAutoSave(){
+  paintSave();
+  if(!FS_OK) return;
+  const h=await idbGet(); if(!h) return;
+  fileHandle=h;
+  try{
+    const p=await h.queryPermission({mode:'readwrite'});
+    if(p==='granted'){
+      try{ const obj=JSON.parse(await (await h.getFile()).text()); if(obj && obj.data && obj.tutorial===KEY) applyLoaded(obj.data); }catch(e){}
+      fileState='on'; await writeFile();
+    }
+    else fileState='lost';
+  }catch(e){ fileState='lost'; }
+  paintSave();
+}
+window.addEventListener('beforeunload',()=>{ if(writeTimer){ clearTimeout(writeTimer); writeFile(); } });
+
 // name + reset
 const nameIn=document.getElementById('stuName');
 nameIn.value=S.name||'';
@@ -644,6 +794,7 @@ document.getElementById('confirmReset').onclick=()=>{
 document.addEventListener('keydown',e=>{if(e.key==='Escape') modal.classList.remove('open');});
 
 render();
+initAutoSave();
 checkSnap();
 window.addEventListener('resize',checkSnap);
 </script>
